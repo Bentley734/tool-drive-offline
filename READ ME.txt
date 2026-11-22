@@ -1,0 +1,48 @@
+TOOL DRIVE OFFLINE
+
+Open index.html in Chrome, Edge, Firefox, or another modern browser.
+Double-click the file, or right-click it and choose Open with your browser.
+No installation, server, account, or internet connection is needed.
+You can copy index.html anywhere; it contains the entire app and catalog.
+
+FIND SOMETHING TO PLAY
+Search for a date, venue, city, taper, or song. Set a minimum sound rating,
+choose a year or recording type, and open a show to compare its sources.
+The default view includes sources marked OTD (on the drive).
+Copy a show's date, then search that date in your own Plexamp library.
+This app does not connect to Plex or know which shows you own.
+
+RATINGS AND DATA
+Snapshot downloaded November 21, 2026 from the Tool Drive Project's public
+show, source, song, and ordered-setlist metadata. Setlists originate from
+setlist.fm. This is an independent personal offline browser.
+
+Ratings measure recording SOUND QUALITY out of 10, not show performance.
+A show's displayed score is its highest-rated source matching your filters.
+An unrated source is displayed as unrated, never as a 0/10 score.
+The public data does not include vote counts; no confidence ranking is used.
+Ratings and catalog entries are frozen at the snapshot and do not update
+automatically. Some setlists are partial; omitted items are indicated.
+
+OTD = on the drive. Confirmed = exists, not yet acquired by the project.
+Unconfirmed = believed to exist. Unknown = no known recording.
+These describe the source archive, not the contents of your Plex library.
+
+OFFLINE AND AUDIO-FREE
+All app code and catalog data are embedded in index.html.
+No audio files were downloaded or bundled. Streaming, download, and Google
+Drive links have been removed. There are no external images, fonts, scripts,
+analytics, or automatic network requests. The page also blocks connections
+and media through its Content Security Policy.
+
+Saved shows are stored only in this browser's local storage. They depend on
+the browser and file location; moving the file or clearing browser data may
+lose the saved list. If local storage is unavailable, saving lasts until the
+page is closed.
+
+OPTIONAL SOURCE FILES
+The full project folder also contains app.template.html, catalog.json, and
+build_catalog.py for inspection or rebuilding. They are not needed to use
+index.html. With Python installed, build_catalog.py --refresh explicitly
+downloads just the four public metadata files and rebuilds the page.
+The rebuild requires internet access; ordinary app use never does.

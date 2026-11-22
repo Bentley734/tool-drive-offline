@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.exe
+*.pdb
+*.zip
+bin/
+obj/
+.vs/
+.verify-build/
+Windows App/dist/
+Thumbs.db
+Desktop.ini
+.DS_Store

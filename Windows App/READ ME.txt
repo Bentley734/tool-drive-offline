@@ -1,0 +1,45 @@
+TOOL DRIVE OFFLINE - WINDOWS APP
+
+Double-click Tool Drive Offline.exe to open the app.
+No installation, administrator rights, browser, or local server is needed.
+The entire show catalog is embedded in the executable. You can move the EXE
+to any folder, or pin it using Windows' normal taskbar/Start controls.
+
+This app uses .NET Framework 4.8, which is already installed on this PC.
+Another computer must also have .NET Framework 4.8 or later installed.
+
+FIND A SHOW
+Search for a date, venue, city, taper, or song. Filter by sound rating,
+recording type, year, and source status. Open a show for its recording
+versions, lineage notes, and setlist. Copy its date and search in Plexamp
+for your own recording. The app does not connect to Plex or inspect your
+music library.
+
+All ratings measure recording SOUND QUALITY out of 10. The score shown for
+a show is the highest rating among sources matching ALL your filters.
+Unrated recordings are not zero-rated. Vote counts are unavailable.
+
+The default status is OTD (on the project's drive). Confirmed means a
+recording exists but the project has not acquired it; Unconfirmed means
+believed to exist; Unknown means no known recording. These labels do not
+describe what is in your Plex library.
+
+OFFLINE DATA
+1,299 shows from the Tool Drive Project's public metadata, downloaded
+November 21, 2026. Setlists originate from setlist.fm and may be partial.
+This is an independent personal offline browser. Data and ratings are
+frozen at that snapshot. No audio was downloaded or bundled, and there
+are no streaming, download, Google Drive, or other external links.
+The app makes no network requests and has no automatic updater.
+
+SAVED SHOWS
+Saved show IDs are stored in:
+%LOCALAPPDATA%\Tool Drive Offline\saved-shows.json
+They remain saved when you move or replace the EXE on the same Windows
+account. This list is separate from the earlier HTML browser's saved list.
+If the app cannot save the file, it reports that the list is session-only.
+
+SOURCE AND REBUILD
+The project folder contains the C# source, icon, manifest, and build-app.ps1.
+Run build-app.ps1 in PowerShell to rebuild using the installed .NET Framework
+compiler. It embeds the existing ../catalog.json; building needs no network.

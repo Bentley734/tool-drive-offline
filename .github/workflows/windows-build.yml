@@ -1,0 +1,27 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the native Windows app
+        shell: pwsh
+        run: '& ".\Windows App\build-app.ps1"'
+      - name: Check the embedded catalog and source filters
+        shell: pwsh
+        run: '& ".\Windows App\test-app.ps1"'
+      - name: Verify the offline distribution
+        shell: pwsh
+        run: python verify_catalog.py
