@@ -15,7 +15,7 @@ The app runs offline and contains metadata only: no audio files, players, stream
 
 Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings are frozen in the bundled snapshot, and vote counts are unavailable.
 
-The default status, **On the drive**, limits results to recordings marked available in the source archive. Other statuses include confirmed, unconfirmed, and shows without a known recording. This status does not scan or describe your Plex library.
+The default status, **On the drive**, limits results to recordings marked available in the source archive. Other statuses include confirmed, unconfirmed, and shows without a known recording. The header reports the **1,342 on-drive recordings** in the bundled snapshot separately from all documented shows. This status does not scan or describe your Plex library.
 
 ## Run the Windows app
 

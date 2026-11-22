@@ -315,13 +315,13 @@ namespace ToolDriveOffline
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 99)); root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); root.RowStyles.Add(new RowStyle(SizeType.Absolute, 47));
             Controls.Add(root);
             TableLayoutPanel header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = new Padding(0, 0, 0, 15) };
-            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 70)); header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             header.RowStyles.Add(new RowStyle(SizeType.Absolute, 43)); header.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             Label title = Theme.Label("TOOL  /  Listening index", Theme.Text, Theme.Heading); title.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-            Label subtitle = Theme.Label("Find your next live listen. Pick a show here; find it in Plexamp.", Theme.Muted, Theme.Body); subtitle.Anchor = AnchorStyles.Left | AnchorStyles.Top; subtitle.Padding = new Padding(0, 4, 0, 0);
+            Label subtitle = Theme.Label("Find your next live listen. Pick a show here; find it in Plexamp.", Theme.Muted, Theme.Body); subtitle.Dock = DockStyle.Fill; subtitle.AutoSize = false; subtitle.AutoEllipsis = true; subtitle.Padding = new Padding(0, 4, 0, 0);
             Label offline = Theme.Label("OFFLINE  ·  METADATA ONLY", Theme.Amber, Theme.Small); offline.Anchor = AnchorStyles.Right | AnchorStyles.Bottom; offline.Padding = new Padding(0, 0, 0, 5);
-            int sourceCount = catalog.shows.Sum(s => s.sources.Count(x => x.status != "Unknown"));
-            Label stats = Theme.Label(catalog.shows.Count.ToString("N0") + " shows  ·  " + sourceCount.ToString("N0") + " sources", Theme.Muted, Theme.Small); stats.Anchor = AnchorStyles.Top | AnchorStyles.Right; stats.Padding = new Padding(0, 6, 0, 0);
+            int onDriveCount = catalog.shows.Sum(s => s.sources.Count(x => x.status == "OTD"));
+            Label stats = Theme.Label(catalog.shows.Count.ToString("N0") + " shows  ·  " + onDriveCount.ToString("N0") + " on-drive recordings", Theme.Muted, Theme.Small); stats.Anchor = AnchorStyles.Top | AnchorStyles.Right; stats.Padding = new Padding(0, 6, 0, 0); stats.Margin = new Padding(16, 0, 0, 0); offline.Margin = new Padding(16, 0, 0, 0);
             header.Controls.Add(title, 0, 0); header.Controls.Add(subtitle, 0, 1); header.Controls.Add(offline, 1, 0); header.Controls.Add(stats, 1, 1); root.Controls.Add(header, 0, 0);
 
             TableLayoutPanel workspace = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
@@ -341,9 +341,9 @@ namespace ToolDriveOffline
             TableLayoutPanel results = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, Margin = new Padding(0) };
             results.RowStyles.Add(new RowStyle(SizeType.Absolute, 58)); results.RowStyles.Add(new RowStyle(SizeType.Absolute, 49)); results.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); results.RowStyles.Add(new RowStyle(SizeType.Absolute, 91)); workspace.Controls.Add(results, 1, 0);
             TableLayoutPanel searchBand = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
-            searchBand.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); searchBand.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 75));
+            searchBand.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); searchBand.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
             search.BorderStyle = BorderStyle.FixedSingle; search.BackColor = Theme.Panel; search.ForeColor = Theme.Text; search.Font = new Font("Segoe UI", 13F); search.Dock = DockStyle.Fill; search.Margin = new Padding(0, 0, 8, 15); search.AccessibleName = "Search date, venue, city, taper, or song";
-            Button clear = Theme.Button("Clear", false); clear.Dock = DockStyle.Top; clear.Margin = new Padding(0); clear.Click += delegate { search.Clear(); search.Focus(); };
+            Button clear = Theme.Button("Clear", false); clear.MinimumSize = new Size(104, 40); clear.Dock = DockStyle.Top; clear.Margin = new Padding(0); clear.Click += delegate { search.Clear(); search.Focus(); };
             searchBand.Controls.Add(search, 0, 0); searchBand.Controls.Add(clear, 1, 0); results.Controls.Add(searchBand, 0, 0);
             TableLayoutPanel toolbar = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, RowCount = 1, Margin = new Padding(0) };
             toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 108)); toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 145)); toolbar.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 169));
