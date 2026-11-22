@@ -16,6 +16,7 @@ The app works offline and contains metadata only: no audio files, players, strea
 - Keep resized column widths between launches, including when moving to another display scale.
 - Browse large result lists using virtual rows and cell values supplied as needed.
 - Download verified GitHub app updates and install them with **Restart to update**, without replacing the EXE by hand.
+- Use matching dark dropdowns, scrollbars, rating controls, checkboxes, and recording-detail tabs.
 
 Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings reflect the bundled snapshot or your latest successful catalog update. Vote counts are unavailable.
 
@@ -25,7 +26,9 @@ The default status, **On the drive**, limits results to recordings marked availa
 
 Requires Windows and **.NET Framework 4.8**. Download the Windows package from the [latest release](https://github.com/Bentley734/tool-drive-offline/releases/latest), extract it, and open `Tool Drive Offline.exe`. The executable embeds its catalog and needs no server or sidecar data files.
 
-Use **Ctrl+F** to focus search. Double-click a row or press **Enter** on a selected row to open details. Drag column-header edges to adjust column widths; changes are remembered between launches. All seven columns remain available through horizontal scrolling when needed. Type a minimum rating and press **Tab** to apply it, or use the numeric spinner.
+Use **Ctrl+F** to focus search. Double-click a row or press **Enter** on a selected row to open details. Drag column-header edges to adjust column widths; changes are remembered between launches. All seven columns remain available through horizontal scrolling when needed. Type a minimum rating and press **Tab** to apply it, or use the minus/plus controls.
+
+The Windows app draws its dropdowns, scrollbars, rating controls, checkboxes, and detail tabs in the same graphite and amber palette. Dropdowns support arrow keys, typing to find an item, **F4** or **Alt+Down** to open, **Enter** to choose, and **Escape** to cancel. Scrollbar thumbs can be dragged; **Shift+wheel** scrolls the results horizontally. Use **Ctrl+Tab** to switch recording-detail sections.
 
 Saved shows are stored in:
 
@@ -61,7 +64,7 @@ You choose when to restart. A copied helper waits for the running app to close, 
 
 Staged app updates and helper files live under `%LOCALAPPDATA%\Tool Drive Offline\AppUpdates`. Only this repository's stable Windows EXE release asset is accepted; ZIP files, prereleases, and older versions are not installed. No account login is needed.
 
-**One-time upgrade:** versions before 1.3.0 do not contain the self-updater. Replace their EXE with 1.3.0 once; later versions can update from inside the app.
+**One-time upgrade:** versions before 1.3.0 do not contain the self-updater. Replace their EXE with the latest release once; later versions can update from inside the app.
 
 ## Optional HTML version
 
@@ -79,7 +82,7 @@ Run these commands in PowerShell from the repository root. Building uses the C# 
 
 The executable is written to `Windows App\dist\Tool Drive Offline.exe`.
 
-Run the catalog/filter, updater, column-layout, and hidden-grid checks with:
+Run the catalog/filter, updater, column-layout, hidden-grid, and custom-control checks with:
 
 ```powershell
 & ".\Windows App\test-app.ps1"
@@ -89,7 +92,7 @@ Validate that the HTML and native catalogs agree and contain no network or audio
 
 The local hidden-control benchmark also checks all 1,299 results, virtual cell values, selected-row actions, and width conversions at different display scales. It does not open a window or perform startup update requests.
 
-The main application source is `Windows App/ToolDriveOffline.cs`; catalog download/import/cache code is in `Windows App/CatalogUpdates.cs`; executable download, verification, helper handoff, and replacement code is in `Windows App/AppUpdates.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
+The main application source is `Windows App/ToolDriveOffline.cs`; catalog download/import/cache code is in `Windows App/CatalogUpdates.cs`; executable download, verification, helper handoff, and replacement code is in `Windows App/AppUpdates.cs`. Custom control painting, input, and scroll hosts are in `Windows App/ThemedInputs.cs`, `Windows App/ThemedScrollBar.cs`, and `Windows App/ThemedScrollHosts.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
 
 App-update checks also reject invalid digests, wrong repositories, old releases, and invalid executable versions. File-replacement fixtures verify that a failed restart restores the previous EXE without touching installed app data.
 

@@ -25,7 +25,10 @@ $compilerArgs = @(
     (Join-Path $projectDir 'ToolDriveOffline.cs'),
     (Join-Path $projectDir 'CatalogUpdates.cs'),
     (Join-Path $projectDir 'ColumnLayout.cs'),
-    (Join-Path $projectDir 'AppUpdates.cs')
+    (Join-Path $projectDir 'AppUpdates.cs'),
+    (Join-Path $projectDir 'ThemedScrollBar.cs'),
+    (Join-Path $projectDir 'ThemedInputs.cs'),
+    (Join-Path $projectDir 'ThemedScrollHosts.cs')
 )
 & $compilerPath @compilerArgs
 if ($LASTEXITCODE -ne 0) { throw ('C# compilation failed: ' + $LASTEXITCODE) }

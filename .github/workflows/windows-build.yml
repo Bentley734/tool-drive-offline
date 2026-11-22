@@ -19,7 +19,7 @@ jobs:
       - name: Build the native Windows app
         shell: pwsh
         run: '& ".\Windows App\build-app.ps1"'
-      - name: Check catalog updates, self-update rollback, layouts, and virtual rows
+      - name: Check catalog updates, self-update rollback, layouts, virtual rows, and themed controls
         shell: pwsh
         run: '& ".\Windows App\test-app.ps1"'
       - name: Verify the offline distribution

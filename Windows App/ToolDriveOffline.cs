@@ -360,9 +360,9 @@ namespace ToolDriveOffline
         {
             return new Label { Text = text, ForeColor = color, Font = font, AutoSize = true, BackColor = Color.Transparent, Margin = new Padding(0) };
         }
-        public static ComboBox Combo()
+        public static ThemedDropDown Combo()
         {
-            return new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Panel, ForeColor = Text, FlatStyle = FlatStyle.Flat, Font = Body, IntegralHeight = false, DropDownHeight = 350, Dock = DockStyle.Fill };
+            return new ThemedDropDown { BackColor = Panel, ForeColor = Text, Font = Body, DropDownHeight = 350, Dock = DockStyle.Fill };
         }
         public static void Frame(Form form)
         {
@@ -410,10 +410,10 @@ namespace ToolDriveOffline
         private Catalog catalog;
         private readonly SavedStore saved;
         private readonly TextBox search = new TextBox();
-        private readonly NumericUpDown minimum = new NumericUpDown();
-        private readonly ComboBox fromYear = Theme.Combo(), toYear = Theme.Combo(), status = Theme.Combo(), type = Theme.Combo(), ratingMode = Theme.Combo(), sort = Theme.Combo();
-        private readonly DataGridView grid = new DataGridView();
-        private readonly CheckBox savedOnly = new CheckBox();
+        private readonly ThemedNumberBox minimum = new ThemedNumberBox();
+        private readonly ThemedDropDown fromYear = Theme.Combo(), toYear = Theme.Combo(), status = Theme.Combo(), type = Theme.Combo(), ratingMode = Theme.Combo(), sort = Theme.Combo();
+        private readonly DataGridView grid = new ThemedDataGridView();
+        private readonly CheckBox savedOnly = new ThemedCheckBox();
         private readonly Label resultCount = Theme.Label("", Theme.Text, Theme.Strong);
         private readonly Label selection = Theme.Label("Select a show to see its recording details.", Theme.Muted, Theme.Small);
         private readonly Label footer = Theme.Label("", Theme.Muted, Theme.Small);
@@ -480,12 +480,12 @@ namespace ToolDriveOffline
             updateBand.Controls.Add(update, 0, 0); updateBand.Controls.Add(appUpdate, 1, 0); updateBand.Controls.Add(lastChecked, 2, 0); header.Controls.Add(updateBand, 0, 2); header.SetColumnSpan(updateBand, 2);
 
             TableLayoutPanel workspace = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
-            workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240)); workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); root.Controls.Add(workspace, 0, 1);
-            Panel filterPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Theme.Panel, Padding = new Padding(17), Margin = new Padding(0, 0, 21, 0) };
-            TableLayoutPanel filters = new TableLayoutPanel { Dock = DockStyle.Top, AutoSize = true, ColumnCount = 1, Padding = new Padding(0), Margin = new Padding(0) };
-            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); filterPanel.Controls.Add(filters); workspace.Controls.Add(filterPanel, 0, 0);
+            workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 270)); workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); root.Controls.Add(workspace, 0, 1);
+            ThemedScrollPanel filterPanel = new ThemedScrollPanel { Dock = DockStyle.Fill, BackColor = Theme.Panel, Padding = new Padding(17), Margin = new Padding(0, 0, 21, 0) };
+            TableLayoutPanel filters = new TableLayoutPanel { Dock = DockStyle.None, AutoSize = true, ColumnCount = 1, Padding = new Padding(0), Margin = new Padding(0) };
+            filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); filterPanel.Content = filters; workspace.Controls.Add(filterPanel, 0, 0);
             Label filterTitle = Theme.Label("FILTER THE ARCHIVE", Theme.Amber, Theme.Small); filterTitle.Margin = new Padding(0, 0, 0, 22); filters.Controls.Add(filterTitle);
-            minimum.Minimum = 0; minimum.Maximum = 10; minimum.Increment = 0.5M; minimum.DecimalPlaces = 1; minimum.BackColor = Theme.Background; minimum.ForeColor = Theme.Text; minimum.BorderStyle = BorderStyle.FixedSingle; minimum.Font = Theme.Body; minimum.Dock = DockStyle.Fill;
+            minimum.Minimum = 0; minimum.Maximum = 10; minimum.Increment = 0.5M; minimum.DecimalPlaces = 1; minimum.BackColor = Theme.Background; minimum.ForeColor = Theme.Text; minimum.BorderStyle = BorderStyle.None; minimum.Font = Theme.Body; minimum.Dock = DockStyle.Fill;
             AddField(filters, "Minimum sound rating / 10", minimum);
             AddField(filters, "Rating availability", ratingMode); AddField(filters, "From year", fromYear); AddField(filters, "Through year", toYear);
             AddField(filters, "Recording status", status); AddField(filters, "Recording type", type);
@@ -507,7 +507,7 @@ namespace ToolDriveOffline
             random.Font = Theme.Small; random.Dock = DockStyle.Top; random.Padding = new Padding(4, 4, 4, 4); random.Margin = new Padding(0, 0, 8, 0); sort.Dock = DockStyle.Top; sort.Margin = new Padding(0); sort.AccessibleName = "Sort shows";
             toolbar.Controls.Add(resultCount, 0, 0); toolbar.Controls.Add(savedOnly, 1, 0); toolbar.Controls.Add(random, 2, 0); toolbar.Controls.Add(sort, 3, 0); results.Controls.Add(toolbar, 0, 1);
             Panel gridPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0), BackColor = Theme.Panel };
-            ConfigureGrid(); gridPanel.Controls.Add(grid); empty.Dock = DockStyle.Fill; empty.TextAlign = ContentAlignment.MiddleCenter; empty.Visible = false; empty.Padding = new Padding(25); gridPanel.Controls.Add(empty); results.Controls.Add(gridPanel, 0, 2);
+            ConfigureGrid(); gridPanel.Controls.Add(new ThemedGridHost(grid) { Dock = DockStyle.Fill }); empty.Dock = DockStyle.Fill; empty.TextAlign = ContentAlignment.MiddleCenter; empty.Visible = false; empty.Padding = new Padding(25); gridPanel.Controls.Add(empty); results.Controls.Add(gridPanel, 0, 2);
             TableLayoutPanel selectedBand = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0), Padding = new Padding(0, 10, 0, 0) };
             selectedBand.RowStyles.Add(new RowStyle(SizeType.Absolute, 29)); selectedBand.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); selection.Dock = DockStyle.Fill; selection.AutoEllipsis = true; selectedBand.Controls.Add(selection, 0, 0);
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = new Padding(0) }; actions.Controls.Add(detail); actions.Controls.Add(copy); actions.Controls.Add(save); selectedBand.Controls.Add(actions, 0, 1); results.Controls.Add(selectedBand, 0, 3);
@@ -524,7 +524,7 @@ namespace ToolDriveOffline
         {
             grid.Dock = DockStyle.Fill; grid.BackgroundColor = Theme.Panel; grid.BorderStyle = BorderStyle.None; grid.AutoGenerateColumns = false;
             grid.VirtualMode = true; grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
-            grid.ScrollBars = ScrollBars.Both;
+            grid.ScrollBars = ScrollBars.None;
             grid.ReadOnly = true; grid.AllowUserToAddRows = false; grid.AllowUserToDeleteRows = false; grid.AllowUserToResizeRows = false;
             grid.RowHeadersVisible = false; grid.MultiSelect = false; grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.EnableHeadersVisualStyles = false; grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal; grid.GridColor = Theme.Line;
@@ -619,7 +619,7 @@ namespace ToolDriveOffline
 
         private void PopulateFilters(FilterOptions preserve = null)
         {
-            foreach (ComboBox combo in new ComboBox[] { ratingMode, status, sort, fromYear, toYear, type }) combo.Items.Clear();
+            foreach (ThemedDropDown combo in new ThemedDropDown[] { ratingMode, status, sort, fromYear, toYear, type }) combo.Items.Clear();
             ratingMode.Items.AddRange(new object[] { new Choice("Rated and unrated", "any"), new Choice("Rated only", "rated"), new Choice("Unrated only", "unrated") });
             status.Items.AddRange(new object[] { new Choice("On the drive", "OTD"), new Choice("All statuses", "all"), new Choice("Confirmed", "Confirmed"), new Choice("Unconfirmed", "Unconfirmed"), new Choice("No known recording", "Unknown") });
             sort.Items.AddRange(new object[] { new Choice("Highest rated", "rating"), new Choice("Newest first", "newest"), new Choice("Oldest first", "oldest"), new Choice("Venue A–Z", "venue") });
@@ -636,7 +636,7 @@ namespace ToolDriveOffline
             SelectChoice(type, preserve == null ? "all" : preserve.RecordingType, true);
         }
 
-        private static void SelectChoice(ComboBox combo, string value, bool retainMissing)
+        private static void SelectChoice(ThemedDropDown combo, string value, bool retainMissing)
         {
             for (int index = 0; index < combo.Items.Count; index++)
                 if (((Choice)combo.Items[index]).Value == value) { combo.SelectedIndex = index; return; }
@@ -660,7 +660,7 @@ namespace ToolDriveOffline
             columnSaveTimer.Interval = 500; columnSaveTimer.Tick += delegate { FlushColumnLayout(); };
             search.TextChanged += delegate { if (!initializing) { searchTimer.Stop(); searchTimer.Start(); } };
             minimum.ValueChanged += delegate { if (!initializing) RefreshResults(null); };
-            foreach (ComboBox combo in new ComboBox[] { fromYear, toYear, status, type, ratingMode, sort }) combo.SelectedIndexChanged += delegate
+            foreach (ThemedDropDown combo in new ThemedDropDown[] { fromYear, toYear, status, type, ratingMode, sort }) combo.SelectedIndexChanged += delegate
             {
                 if (initializing) return; bool unrated = Value(ratingMode) == "unrated";
                 minimum.Enabled = !unrated; if (unrated) minimum.Value = 0; RefreshResults(null);
@@ -679,7 +679,10 @@ namespace ToolDriveOffline
                 if (readyAppRelease != null && !String.IsNullOrEmpty(stagedAppUpdate)) await RestartForAppUpdate();
                 else await CheckForAppUpdates(false);
             };
-            KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.F) { search.Focus(); search.SelectAll(); e.Handled = true; e.SuppressKeyPress = true; } };
+            KeyEventHandler focusSearch = delegate(object sender, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.F) { search.Focus(); search.SelectAll(); e.Handled = true; e.SuppressKeyPress = true; } };
+            KeyDown += focusSearch;
+            // Open dropdown menus have their own popup window and forward search shortcuts here.
+            foreach (ThemedDropDown combo in new ThemedDropDown[] { fromYear, toYear, status, type, ratingMode, sort }) combo.KeyDown += focusSearch;
             grid.ColumnWidthChanged += delegate
             {
                 if (!columnsReady || applyingColumnLayout || initializing || closing) return;
@@ -708,7 +711,7 @@ namespace ToolDriveOffline
             if (appUpdateCancellation == null && !installingAppUpdate) await CheckForAppUpdates(true);
         }
 
-        private static string Value(ComboBox combo) { Choice choice = combo.SelectedItem as Choice; return choice == null ? "" : choice.Value; }
+        private static string Value(ThemedDropDown combo) { Choice choice = combo.SelectedItem as Choice; return choice == null ? "" : choice.Value; }
         private FilterOptions Options()
         {
             return new FilterOptions { Search = search.Text, MinimumRating = Decimal.ToDouble(minimum.Value), RatingMode = Value(ratingMode), FromYear = Value(fromYear), ToYear = Value(toYear), Status = Value(status), RecordingType = Value(type), SavedOnly = savedOnly.Checked, Sort = Value(sort) };
@@ -716,7 +719,7 @@ namespace ToolDriveOffline
         private void ResetFilters()
         {
             initializing = true; searchTimer.Stop(); search.Clear(); minimum.Value = 0; minimum.Enabled = true; savedOnly.Checked = false;
-            foreach (ComboBox combo in new ComboBox[] { fromYear, toYear, status, type, ratingMode, sort }) combo.SelectedIndex = 0;
+            foreach (ThemedDropDown combo in new ThemedDropDown[] { fromYear, toYear, status, type, ratingMode, sort }) combo.SelectedIndex = 0;
             initializing = false; RefreshResults(null); search.Focus();
         }
         private void RefreshResults(long? selectedId)
@@ -990,10 +993,10 @@ namespace ToolDriveOffline
             date.Click += delegate { ClipboardHelper.Copy(this, show.date); }; search.Click += delegate { ClipboardHelper.Copy(this, "Tool " + show.date); };
             save.Text = saved.Contains(show) ? "Remove saved" : "Save show"; save.Click += delegate { toggle(show); save.Text = saved.Contains(show) ? "Remove saved" : "Save show"; };
             close.DialogResult = DialogResult.Cancel; CancelButton = close; actions.Controls.Add(date); actions.Controls.Add(search); actions.Controls.Add(save); actions.Controls.Add(close); root.Controls.Add(actions, 0, 1);
-            TabControl tabs = new TabControl { Dock = DockStyle.Fill, Font = Theme.Body, Padding = new Point(16, 7), Margin = new Padding(0) };
-            TabPage sources = new TabPage("Recording sources (" + show.sources.Count.ToString() + ")"), setlist = new TabPage(show.setlist.Count > 0 ? "Setlist" : "Known songs");
-            sources.BackColor = Theme.Panel; setlist.BackColor = Theme.Panel;
-            RichTextBox sourceText = RichText(), songText = RichText(); sources.Controls.Add(sourceText); setlist.Controls.Add(songText); tabs.TabPages.Add(sources); tabs.TabPages.Add(setlist); root.Controls.Add(tabs, 0, 2);
+            ThemedTabs tabs = new ThemedTabs { Dock = DockStyle.Fill, Font = Theme.Body, Margin = new Padding(0) };
+            RichTextBox sourceText = RichText(), songText = RichText();
+            tabs.AddPage("Recording sources (" + show.sources.Count.ToString() + ")", new ThemedRichTextHost(sourceText));
+            tabs.AddPage(show.setlist.Count > 0 ? "Setlist" : "Known songs", new ThemedRichTextHost(songText)); root.Controls.Add(tabs, 0, 2);
             Append(sourceText, "SOUND QUALITY OUT OF 10\r\n", Theme.Amber, Theme.Strong);
             Append(sourceText, "All sources are shown. Matching means a source passes your search, status, type and sound-rating filters.\r\n\r\n", Theme.Muted, Theme.Body);
             foreach (Source item in show.sources.OrderByDescending(x => catalog.SourceMatches(show, x, options)).ThenByDescending(x => Catalog.SoundRating(x) ?? -1))
@@ -1027,7 +1030,7 @@ namespace ToolDriveOffline
             Label footer = Theme.Label("Snapshot " + catalog.snapshotDate + "  ·  Metadata only. Search your own library in Plexamp.", Theme.Muted, Theme.Small); footer.Dock = DockStyle.Fill; footer.Padding = new Padding(0, 13, 0, 0); footer.AutoEllipsis = true; root.Controls.Add(footer, 0, 3);
             KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Escape) { Close(); e.Handled = true; } };
         }
-        private static RichTextBox RichText() { return new RichTextBox { Dock = DockStyle.Fill, ReadOnly = true, DetectUrls = false, BackColor = Theme.Panel, ForeColor = Theme.Text, BorderStyle = BorderStyle.None, Font = Theme.Body, WordWrap = true, ScrollBars = RichTextBoxScrollBars.Vertical, TabStop = true, Padding = new Padding(15), Text = "" }; }
+        private static RichTextBox RichText() { return new RichTextBox { Dock = DockStyle.Fill, ReadOnly = true, DetectUrls = false, BackColor = Theme.Panel, ForeColor = Theme.Text, BorderStyle = BorderStyle.None, Font = Theme.Body, WordWrap = true, ScrollBars = RichTextBoxScrollBars.None, TabStop = true, Padding = new Padding(15), Text = "" }; }
         private static void Append(RichTextBox box, string text, Color color, Font font) { box.SelectionStart = box.TextLength; box.SelectionLength = 0; box.SelectionColor = color; box.SelectionFont = font; box.AppendText(text); }
     }
 

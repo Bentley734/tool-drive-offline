@@ -24,6 +24,8 @@ public static class PerformanceChecks
         assertions++;
     }
     static string Value(object choice) { return (string)choice.GetType().GetField("Value").GetValue(choice); }
+    static IEnumerable<object> Items(Control picker) { return ((IEnumerable)picker.GetType().GetProperty("Items").GetValue(picker, null)).Cast<object>(); }
+    static void Select(Control picker, object item) { picker.GetType().GetProperty("SelectedItem").SetValue(picker, item, null); }
     static double Median(List<double> values) { values.Sort(); return values[values.Count / 2]; }
 
     [STAThread]
@@ -59,9 +61,9 @@ public static class PerformanceChecks
                 form.PerformLayout();
                 var controls = Walk(form).ToList();
                 var grid = controls.OfType<DataGridView>().Single();
-                var status = controls.OfType<ComboBox>().Single(control => control.AccessibleName == "Recording status");
-                var all = status.Items.Cast<object>().Single(choice => Value(choice) == "all");
-                var onDrive = status.Items.Cast<object>().Single(choice => Value(choice) == "OTD");
+                var status = controls.Single(control => control.AccessibleName == "Recording status");
+                var all = Items(status).Single(choice => Value(choice) == "all");
+                var onDrive = Items(status).Single(choice => Value(choice) == "OTD");
                 if (!baseline)
                 {
                     Assert(grid.VirtualMode && grid.DataSource == null, "Large-result grid must use virtual rows instead of eager data binding");
@@ -72,9 +74,9 @@ public static class PerformanceChecks
                 var refreshTimes = new List<double>();
                 for (int i = 0; i < 12; i++)
                 {
-                    status.SelectedItem = onDrive;
+                    Select(status, onDrive);
                     var clock = Stopwatch.StartNew();
-                    status.SelectedItem = all;
+                    Select(status, all);
                     clock.Stop();
                     Assert(grid.RowCount == 1299, "Changing to all statuses must show all 1,299 rows");
                     if (i > 1) refreshTimes.Add(clock.Elapsed.TotalMilliseconds);
@@ -87,7 +89,7 @@ public static class PerformanceChecks
                     grid.Rows[100].Selected = true;
                     object selected = formType.GetMethod("Selected", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(form, null);
                     Assert(selected != null, "Selecting a virtual row must resolve its show for detail/copy/save actions");
-                    status.SelectedItem = onDrive;
+                    Select(status, onDrive);
                     Assert(grid.RowCount == 759, "Virtual rows must update correctly after narrowing a filter");
                     var widths = new Dictionary<string, int> { { "Date", 180 }, { "Venue", 360 }, { "Location", 260 }, { "Sound", 100 }, { "Sources", 80 }, { "Type", 120 }, { "Taper", 210 } };
                     var apply = formType.GetMethod("ApplyColumnWidths", BindingFlags.Instance | BindingFlags.NonPublic);

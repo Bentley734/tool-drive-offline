@@ -86,6 +86,15 @@ All columns remain available through horizontal scrolling when needed.
 Large lists use virtual rows and create display values as needed instead
 of rebuilding every cell after a filter changes.
 
+MATCHING DARK CONTROLS
+Dropdowns, scrollbars, rating controls, checkboxes, and recording-detail
+tabs share the app's graphite and amber theme. Drag scrollbar thumbs or
+use the mouse wheel; Shift+wheel scrolls the show list horizontally.
+Dropdowns support arrow keys and typing to find an item. F4 or Alt+Down
+opens a dropdown, Enter chooses an item, and Escape cancels the choice.
+Type a minimum rating and press Tab, or use the minus/plus controls.
+Ctrl+Tab switches between recording sources and setlist details.
+
 SOURCE AND REBUILD
 The project folder contains the C# source, icon, manifest, and build-app.ps1.
 Run build-app.ps1 in PowerShell to rebuild using the installed .NET Framework
