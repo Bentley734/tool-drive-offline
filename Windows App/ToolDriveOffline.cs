@@ -422,6 +422,7 @@ namespace ToolDriveOffline
         private readonly Label empty = Theme.Label("", Theme.Muted, Theme.Body);
         private readonly Button detail = Theme.Button("Show details", true), copy = Theme.Button("Copy date", false), save = Theme.Button("Save show", false), random = Theme.Button("Pick a show", false);
         private readonly Button update = Theme.Button("Check for catalog updates", false);
+        private readonly Button appUpdate = Theme.Button("Check app updates", false);
         private readonly System.Windows.Forms.Timer searchTimer = new System.Windows.Forms.Timer();
         private readonly System.Windows.Forms.Timer columnSaveTimer = new System.Windows.Forms.Timer();
         private readonly Random rng = new Random();
@@ -440,6 +441,12 @@ namespace ToolDriveOffline
         private bool applyingColumnLayout;
         private bool columnWidthsDirty;
         private string columnLayoutWarning;
+        private bool startupAppUpdateStarted;
+        private bool installingAppUpdate;
+        private CancellationTokenSource appUpdateCancellation;
+        private AppRelease readyAppRelease;
+        private string stagedAppUpdate;
+        private string appUpdateMessage;
 
         public MainForm(Catalog catalog, string warning = null)
         {
@@ -454,7 +461,7 @@ namespace ToolDriveOffline
         private void Build()
         {
             TableLayoutPanel root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(24, 18, 24, 12), BackColor = Theme.Background };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 145)); root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 145)); root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); root.RowStyles.Add(new RowStyle(SizeType.Absolute, 84));
             Controls.Add(root);
             TableLayoutPanel header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Margin = new Padding(0, 0, 0, 15) };
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -464,9 +471,13 @@ namespace ToolDriveOffline
             Label offline = Theme.Label("OFFLINE  ·  METADATA ONLY", Theme.Amber, Theme.Small); offline.Anchor = AnchorStyles.Right | AnchorStyles.Bottom; offline.Padding = new Padding(0, 0, 0, 5);
             stats.Anchor = AnchorStyles.Top | AnchorStyles.Right; stats.Padding = new Padding(0, 6, 0, 0); stats.Margin = new Padding(16, 0, 0, 0); offline.Margin = new Padding(16, 0, 0, 0);
             header.Controls.Add(title, 0, 0); header.Controls.Add(subtitle, 0, 1); header.Controls.Add(offline, 1, 0); header.Controls.Add(stats, 1, 1); root.Controls.Add(header, 0, 0);
-            FlowLayoutPanel updateBand = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 2, 0, 0) };
+            TableLayoutPanel updateBand = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Margin = new Padding(0), Padding = new Padding(0, 2, 0, 0) };
+            updateBand.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); updateBand.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); updateBand.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             update.MinimumSize = new Size(260, 40); update.AccessibleName = "Check catalog metadata updates now; a check also runs once at launch";
-            lastChecked.Margin = new Padding(7, 10, 0, 0); updateBand.Controls.Add(update); updateBand.Controls.Add(lastChecked); header.Controls.Add(updateBand, 0, 2); header.SetColumnSpan(updateBand, 2);
+            appUpdate.MinimumSize = new Size(200, 40); appUpdate.AccessibleName = "Check GitHub for app updates; an app check also runs once at launch";
+            update.Dock = DockStyle.Top; appUpdate.Dock = DockStyle.Top;
+            lastChecked.Margin = new Padding(7, 0, 0, 0); lastChecked.Dock = DockStyle.Fill; lastChecked.AutoSize = false; lastChecked.AutoEllipsis = true; lastChecked.TextAlign = ContentAlignment.MiddleLeft;
+            updateBand.Controls.Add(update, 0, 0); updateBand.Controls.Add(appUpdate, 1, 0); updateBand.Controls.Add(lastChecked, 2, 0); header.Controls.Add(updateBand, 0, 2); header.SetColumnSpan(updateBand, 2);
 
             TableLayoutPanel workspace = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
             workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240)); workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); root.Controls.Add(workspace, 0, 1);
@@ -662,6 +673,12 @@ namespace ToolDriveOffline
             save.Click += delegate { ShowMatch item = Selected(); if (item != null) ToggleSaved(item.Show); };
             random.Click += delegate { if (matches.Count > 0) OpenShow(matches[rng.Next(matches.Count)].Show); };
             update.Click += async delegate { startupUpdateStarted = true; await CheckForUpdates(false); };
+            appUpdate.Click += async delegate
+            {
+                startupAppUpdateStarted = true;
+                if (readyAppRelease != null && !String.IsNullOrEmpty(stagedAppUpdate)) await RestartForAppUpdate();
+                else await CheckForAppUpdates(false);
+            };
             KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.F) { search.Focus(); search.SelectAll(); e.Handled = true; e.SuppressKeyPress = true; } };
             grid.ColumnWidthChanged += delegate
             {
@@ -673,6 +690,7 @@ namespace ToolDriveOffline
             {
                 RestoreColumnLayout(); search.Focus();
                 BeginInvoke(new Action(StartStartupUpdate));
+                BeginInvoke(new Action(StartStartupAppUpdate));
             };
         }
 
@@ -681,6 +699,13 @@ namespace ToolDriveOffline
             if (startupUpdateStarted || closing || IsDisposed || Disposing) return;
             startupUpdateStarted = true;
             if (updateCancellation == null) await CheckForUpdates(true);
+        }
+
+        private async void StartStartupAppUpdate()
+        {
+            if (startupAppUpdateStarted || closing || IsDisposed || Disposing) return;
+            startupAppUpdateStarted = true;
+            if (appUpdateCancellation == null && !installingAppUpdate) await CheckForAppUpdates(true);
         }
 
         private static string Value(ComboBox combo) { Choice choice = combo.SelectedItem as Choice; return choice == null ? "" : choice.Value; }
@@ -748,7 +773,99 @@ namespace ToolDriveOffline
         {
             string state = message ?? (updateCancellation != null ? "Checking public show and rating metadata. Your current catalog remains available; use Cancel update to stop." : null)
                 ?? updateMessage ?? saved.Warning ?? catalogWarning ?? columnLayoutWarning ?? "Metadata only · checks once at launch · Sound quality /10, not performance rating";
-            footer.Text = "Snapshot " + catalog.snapshotDate + (lastCheckedUtc.HasValue ? "  ·  Last checked " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "  ·  Never checked online") + "\r\n" + state;
+            footer.Text = "App " + VersionLabel(AppUpdater.CurrentVersion) + "  ·  Snapshot " + catalog.snapshotDate + (lastCheckedUtc.HasValue ? "  ·  Last checked " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "  ·  Never checked online")
+                + "\r\n" + state + "\r\n" + (appUpdateMessage ?? "App updates are checked once at launch. You choose when to restart.");
+        }
+
+        private static string VersionLabel(Version version)
+        {
+            return "v" + version.Major.ToString(CultureInfo.InvariantCulture) + "." + version.Minor.ToString(CultureInfo.InvariantCulture) + "." + Math.Max(0, version.Build).ToString(CultureInfo.InvariantCulture);
+        }
+
+        private void UpdateAppUpdateButton()
+        {
+            bool ready = readyAppRelease != null && !String.IsNullOrEmpty(stagedAppUpdate);
+            appUpdate.Enabled = !installingAppUpdate;
+            appUpdate.Text = ready ? "Restart to update " + VersionLabel(readyAppRelease.Version) : "Check app updates";
+            appUpdate.BackColor = ready ? Theme.Amber : Theme.Panel; appUpdate.ForeColor = ready ? Theme.Background : Theme.Text;
+            appUpdate.FlatAppearance.BorderColor = ready ? Theme.Amber : Theme.Line;
+            appUpdate.AccessibleName = ready ? "Restart now to install the verified app update " + VersionLabel(readyAppRelease.Version) : "Check GitHub for app updates";
+        }
+
+        private async Task CheckForAppUpdates(bool startup)
+        {
+            if (closing || IsDisposed || Disposing || installingAppUpdate) return;
+            if (appUpdateCancellation != null)
+            {
+                if (startup) return;
+                appUpdateCancellation.Cancel(); appUpdate.Enabled = false; appUpdate.Text = "Canceling app update…";
+                appUpdateMessage = "Canceling the app-update check or download. You can keep browsing."; UpdateFooter(null); return;
+            }
+            CancellationTokenSource cancellation = new CancellationTokenSource(); appUpdateCancellation = cancellation;
+            appUpdate.Text = "Cancel app update"; appUpdate.AccessibleName = "Cancel the app-update check or download";
+            appUpdateMessage = "Checking GitHub for a newer app version…"; UpdateFooter(null);
+            try
+            {
+                AppRelease release = await AppUpdater.CheckAsync(cancellation.Token);
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (closing || IsDisposed || Disposing) return;
+                if (release == null)
+                {
+                    appUpdateMessage = "App is up to date (" + VersionLabel(AppUpdater.CurrentVersion) + ")."; return;
+                }
+                appUpdateMessage = "Downloading and verifying app update " + VersionLabel(release.Version) + "… You can keep browsing."; UpdateFooter(null);
+                string candidate = await AppUpdater.DownloadAsync(release, cancellation.Token);
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (closing || IsDisposed || Disposing) return;
+                readyAppRelease = release; stagedAppUpdate = candidate;
+                appUpdateMessage = "App update " + VersionLabel(release.Version) + " is verified and ready. Restart to update when you're ready.";
+            }
+            catch (OperationCanceledException)
+            {
+                if (!closing && !IsDisposed && !Disposing) appUpdateMessage = cancellation.IsCancellationRequested ? "App update canceled. The current app is unchanged." : "The app-update check timed out. You can keep using this version.";
+            }
+            catch (Exception)
+            {
+                if (!closing && !IsDisposed && !Disposing) appUpdateMessage = startup ? "App updates could not be checked. This version remains ready to use offline." : "The app update could not be checked or verified. The current app is unchanged; try again later.";
+            }
+            finally
+            {
+                appUpdateCancellation = null; cancellation.Dispose();
+                if (!closing && !IsDisposed && !Disposing) { UpdateAppUpdateButton(); UpdateFooter(null); }
+            }
+        }
+
+        private async Task RestartForAppUpdate()
+        {
+            if (closing || IsDisposed || Disposing || installingAppUpdate || readyAppRelease == null || String.IsNullOrEmpty(stagedAppUpdate)) return;
+            installingAppUpdate = true; appUpdate.Enabled = false; appUpdate.Text = "Preparing restart…";
+            appUpdateMessage = "Preparing the verified app update. Your saved shows and column widths will be kept."; UpdateFooter(null);
+            AppRelease release = readyAppRelease; string candidate = stagedAppUpdate; string target = Application.ExecutablePath;
+            string installError = null; bool started = false;
+            try
+            {
+                started = await Task.Run(delegate
+                {
+                    string error; bool result = AppUpdater.BeginInstall(release, candidate, target, out error); installError = error; return result;
+                });
+                if (closing || IsDisposed || Disposing) return;
+                if (started) { Close(); return; }
+                appUpdateMessage = "The update could not restart the app. This version is still running.";
+                MessageBox.Show(this, appUpdateMessage + (String.IsNullOrWhiteSpace(installError) ? "" : "\r\n\r\n" + installError), "App update", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception)
+            {
+                if (!closing && !IsDisposed && !Disposing)
+                {
+                    appUpdateMessage = "The update could not restart the app. This version is still running; try again later.";
+                    MessageBox.Show(this, appUpdateMessage, "App update", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            finally
+            {
+                installingAppUpdate = false;
+                if (!closing && !IsDisposed && !Disposing) { UpdateAppUpdateButton(); UpdateFooter(null); }
+            }
         }
 
         private async Task CheckForUpdates(bool startup)
@@ -803,7 +920,7 @@ namespace ToolDriveOffline
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            closing = true; if (updateCancellation != null) updateCancellation.Cancel(); searchTimer.Stop();
+            closing = true; if (updateCancellation != null) updateCancellation.Cancel(); if (appUpdateCancellation != null) appUpdateCancellation.Cancel(); searchTimer.Stop();
             FlushColumnLayout();
             base.OnFormClosing(e); if (e.Cancel) closing = false;
         }
@@ -917,8 +1034,9 @@ namespace ToolDriveOffline
     internal static class Program
     {
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
+            if (AppUpdater.HandleCommandLine(args)) return;
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             try
             {

@@ -2,7 +2,7 @@
 
 A native Windows show browser for finding a Tool recording to hear in your own Plexamp library. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
 
-The app works offline and contains metadata only: no audio files, players, streaming links, or download links. The Windows app checks for catalog updates in the background once when it opens; you can also check manually or cancel a check. An optional single-file HTML version is also included.
+The app works offline and contains metadata only: no audio files, players, streaming links, or download links. The Windows app checks for catalog updates and newer GitHub app releases in the background when it opens. You can cancel checks and choose when to restart into a downloaded app update. An optional single-file HTML version is also included.
 
 ## Features
 
@@ -15,6 +15,7 @@ The app works offline and contains metadata only: no audio files, players, strea
 - Check for new catalog entries and sound ratings at startup, then keep the refreshed catalog available offline.
 - Keep resized column widths between launches, including when moving to another display scale.
 - Browse large result lists using virtual rows and cell values supplied as needed.
+- Download verified GitHub app updates and install them with **Restart to update**, without replacing the EXE by hand.
 
 Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings reflect the bundled snapshot or your latest successful catalog update. Vote counts are unavailable.
 
@@ -50,7 +51,17 @@ The local catalog cache is separate from the executable and saved shows:
 %LOCALAPPDATA%\Tool Drive Offline\catalog-update.json
 ```
 
-Later launches first load this cache, then check the site in the background. If it cannot be read, the app falls back to its embedded catalog and displays a notice. The updater fetches metadata only: no audio, media links, account credentials, Plex library data, or application executables.
+Later launches first load this cache, then check the site in the background. If it cannot be read, the app falls back to its embedded catalog and displays a notice. The catalog updater fetches metadata only: no audio, media links, account credentials, or Plex library data. App executable updates are handled separately below.
+
+## App updates from GitHub
+
+Version 1.3.0 and later check the public [GitHub releases](https://github.com/Bentley734/tool-drive-offline/releases) at startup. A newer stable release is downloaded in the background. The app verifies its GitHub SHA-256 digest, size, executable identity, and version before offering **Restart to update**. The **Check app updates** button can check again; while checking or downloading, it can cancel the operation.
+
+You choose when to restart. A copied helper waits for the running app to close, replaces its EXE atomically, and starts the new version. Saved shows, downloaded catalog metadata, and column widths stay in their separate Windows profile files. If replacement or launch fails, the helper keeps or restores the previous executable. Updating needs write access to the EXE's folder and no other instance using that same EXE.
+
+Staged app updates and helper files live under `%LOCALAPPDATA%\Tool Drive Offline\AppUpdates`. Only this repository's stable Windows EXE release asset is accepted; ZIP files, prereleases, and older versions are not installed. No account login is needed.
+
+**One-time upgrade:** versions before 1.3.0 do not contain the self-updater. Replace their EXE with 1.3.0 once; later versions can update from inside the app.
 
 ## Optional HTML version
 
@@ -78,7 +89,13 @@ Validate that the HTML and native catalogs agree and contain no network or audio
 
 The local hidden-control benchmark also checks all 1,299 results, virtual cell values, selected-row actions, and width conversions at different display scales. It does not open a window or perform startup update requests.
 
-The main application source is `Windows App/ToolDriveOffline.cs`; download, import, comparison, and cache code is in `Windows App/CatalogUpdates.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
+The main application source is `Windows App/ToolDriveOffline.cs`; catalog download/import/cache code is in `Windows App/CatalogUpdates.cs`; executable download, verification, helper handoff, and replacement code is in `Windows App/AppUpdates.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
+
+App-update checks also reject invalid digests, wrong repositories, old releases, and invalid executable versions. File-replacement fixtures verify that a failed restart restores the previous EXE without touching installed app data.
+
+## Publishing a self-update-compatible release
+
+Bump both version attributes in `Windows App/AssemblyInfo.cs`, build and test, and tag a stable `vMAJOR.MINOR.PATCH` release. Upload the standalone Windows executable as `Tool.Drive.Offline.exe` (GitHub also normalizes the build's spaced filename to this name). Publish it as the latest non-prerelease after all assets have uploaded and GitHub has generated the EXE's SHA-256 digest. The updater needs that executable asset; a ZIP alone is not sufficient.
 
 ## Rebuild the bundled metadata
 

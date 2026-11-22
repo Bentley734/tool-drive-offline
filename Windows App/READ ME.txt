@@ -43,11 +43,32 @@ working catalog. Your search, filters, and saved shows are preserved.
 If you are offline, the saved catalog remains usable. Recent changes may
 take time to reach the site's published metadata files. Last checked shows when
 your check succeeded; it is not the edit date of every recording.
-This feature updates catalog data, not the application EXE.
+The catalog control updates data; app EXE updates are handled separately.
 
 Updated metadata is cached separately at:
 %LOCALAPPDATA%\Tool Drive Offline\catalog-update.json
 If that cache cannot be loaded, the embedded catalog remains available.
+
+APP UPDATES FROM GITHUB
+The app checks for newer stable GitHub releases when it opens. If there is
+one, it downloads the Windows EXE in the background and verifies the file's
+SHA-256 digest, size, app identity, and version.
+
+Click Restart to update when you are ready. The app closes, replaces its
+EXE, and starts the new version. You do not need to download or replace the
+file by hand. Check app updates can check again or cancel an active check.
+If you are offline, the current app and catalog remain usable.
+
+Saved shows, cached metadata, and column widths remain in your Windows
+profile. The helper keeps or restores the old EXE if replacement or restart
+fails. The EXE folder must be writable, and other copies using the same EXE
+must be closed. No administrator access or login is requested.
+
+Temporary app-update files are stored under:
+%LOCALAPPDATA%\Tool Drive Offline\AppUpdates
+
+Versions before 1.3.0 need this updater-enabled EXE installed once. Later
+versions can update themselves using Restart to update.
 
 SAVED SHOWS
 Saved show IDs are stored in:
