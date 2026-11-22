@@ -7,6 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 
@@ -87,21 +90,126 @@ namespace ToolDriveOffline
         public string ratingDescription { get; set; }
         public List<Show> shows { get; set; }
 
+        private const int MaximumJsonBytes = 32 * 1024 * 1024;
+        private static readonly HashSet<string> ValidStatuses = new HashSet<string>(new string[] { "OTD", "Confirmed", "Unconfirmed", "Unknown" }, StringComparer.Ordinal);
+        private static readonly Regex UrlPattern = new Regex(@"(?:(?:[a-z][a-z0-9+.-]*:)?//|www\.|mailto:|magnet:)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         public static Catalog Load()
         {
             using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ToolDriveOffline.catalog.json"))
             {
                 if (stream == null) throw new InvalidOperationException("The embedded show catalog is missing.");
                 using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
-                {
-                    JavaScriptSerializer serializer = new JavaScriptSerializer();
-                    serializer.MaxJsonLength = Int32.MaxValue;
-                    Catalog catalog = serializer.Deserialize<Catalog>(reader.ReadToEnd());
-                    if (catalog == null || catalog.shows == null) throw new InvalidOperationException("The embedded show catalog could not be read.");
-                    foreach (Show show in catalog.shows) catalog.Prepare(show);
-                    return catalog;
-                }
+                    return FromJson(reader.ReadToEnd());
             }
+        }
+
+        public static Catalog FromJson(string json)
+        {
+            if (String.IsNullOrWhiteSpace(json) || json.Length > MaximumJsonBytes || Encoding.UTF8.GetByteCount(json) > MaximumJsonBytes)
+                throw new InvalidDataException("The catalog is empty or exceeds the 32 MB metadata limit.");
+            try
+            {
+                JavaScriptSerializer serializer = new JavaScriptSerializer { MaxJsonLength = MaximumJsonBytes, RecursionLimit = 32 };
+                object raw = serializer.DeserializeObject(json);
+                if (!(raw is IDictionary<string, object>)) throw new InvalidDataException("The catalog must be a JSON object.");
+                ValidateRaw(raw, 0);
+                Catalog catalog = serializer.ConvertToType<Catalog>(raw);
+                if (catalog == null || catalog.shows == null || catalog.shows.Count == 0 || catalog.shows.Count > 50000)
+                    throw new InvalidDataException("The catalog must contain between 1 and 50,000 shows.");
+                ValidateDate(catalog.snapshotDate, "snapshot date");
+                ValidateText(catalog.source, 2048, true); ValidateText(catalog.ratingDescription, 4096, false);
+                HashSet<long> showIds = new HashSet<long>(), sourceIds = new HashSet<long>();
+                foreach (Show show in catalog.shows)
+                {
+                    if (show == null || show.id <= 0 || !showIds.Add(show.id)) throw new InvalidDataException("Show IDs must be positive and unique.");
+                    ValidateDate(show.date, "show date"); ValidateStatus(show.status);
+                    ValidateText(show.venue, 2048, true); ValidateText(show.city, 512, false); ValidateText(show.state, 512, false);
+                    ValidateText(show.country, 512, false); ValidateText(show.festival, 2048, false); ValidateText(show.tour, 2048, false);
+                    if (show.sources == null || show.sources.Count == 0 || show.sources.Count > 4096) throw new InvalidDataException("Each show must contain a bounded recording-source list.");
+                    foreach (Source item in show.sources)
+                    {
+                        if (item == null || item.id <= 0 || !sourceIds.Add(item.id) || sourceIds.Count > 250000)
+                            throw new InvalidDataException("Recording-source IDs must be positive and unique throughout the catalog.");
+                        ValidateStatus(item.status);
+                        if (item.rating.HasValue && (Double.IsNaN(item.rating.Value) || Double.IsInfinity(item.rating.Value) || item.rating.Value < 0 || item.rating.Value > 10))
+                            throw new InvalidDataException("Sound ratings must be finite numbers between 0 and 10, or null.");
+                        if (item.rating == 0) item.rating = null;
+                        ValidateText(item.version, 128, false); ValidateText(item.taper, 2048, false); ValidateText(item.gear, 8192, false);
+                        ValidateText(item.generation, 512, false); ValidateText(item.length, 128, false); ValidateText(item.lineage, 32768, false);
+                        ValidateText(item.recordingType, 128, true); ValidateText(item.codec, 128, false); ValidateText(item.lossless, 128, false);
+                    }
+                    if (show.setlist == null) show.setlist = new List<SetlistItem>();
+                    if (show.songs == null) show.songs = new List<string>();
+                    if (show.setlist.Count > 2048 || show.songs.Count > 2048 || show.setlistOmitted < 0 || show.setlistOmitted > 10000)
+                        throw new InvalidDataException("A show contains an invalid song list.");
+                    foreach (SetlistItem item in show.setlist)
+                    {
+                        if (item == null) throw new InvalidDataException("Setlist items cannot be null.");
+                        ValidateText(item.title, 2048, true); ValidateText(item.info, 8192, false); ValidateText(item.encore, 128, false);
+                    }
+                    foreach (string title in show.songs) ValidateText(title, 2048, true);
+                    catalog.Prepare(show);
+                }
+                return catalog;
+            }
+            catch (InvalidDataException) { throw; }
+            catch (Exception error)
+            {
+                if (error is ArgumentException || error is InvalidOperationException || error is FormatException || error is OverflowException)
+                    throw new InvalidDataException("The catalog metadata could not be read safely.", error);
+                throw;
+            }
+        }
+
+        private static void ValidateRaw(object value, int depth)
+        {
+            if (depth > 32) throw new InvalidDataException("The catalog nesting limit was exceeded.");
+            string text = value as string;
+            if (text != null) { ValidateText(text, 32768, false); return; }
+            IDictionary<string, object> map = value as IDictionary<string, object>;
+            if (map != null)
+            {
+                if (map.Count > 128) throw new InvalidDataException("A metadata object contains too many fields.");
+                foreach (KeyValuePair<string, object> item in map)
+                {
+                    ValidateText(item.Key, 128, true);
+                    if (item.Key == "id")
+                    {
+                        decimal id;
+                        if (!IsNumber(item.Value) || !Decimal.TryParse(Convert.ToString(item.Value, CultureInfo.InvariantCulture), NumberStyles.Number, CultureInfo.InvariantCulture, out id) || id <= 0 || id > Int64.MaxValue || Decimal.Truncate(id) != id)
+                            throw new InvalidDataException("Catalog IDs must be positive whole numbers.");
+                    }
+                    if (item.Key == "rating" && item.Value != null && !IsNumber(item.Value)) throw new InvalidDataException("Sound ratings must be numeric or null.");
+                    ValidateRaw(item.Value, depth + 1);
+                }
+                return;
+            }
+            System.Collections.IList list = value as System.Collections.IList;
+            if (list != null)
+            {
+                if (list.Count > 250000) throw new InvalidDataException("A metadata list is too large.");
+                foreach (object item in list) ValidateRaw(item, depth + 1);
+            }
+        }
+        private static bool IsNumber(object value)
+        {
+            return value is Int32 || value is Int64 || value is Decimal || value is Double || value is Single || value is Int16 || value is Byte;
+        }
+        private static void ValidateText(string value, int maximumLength, bool required)
+        {
+            if ((required && String.IsNullOrWhiteSpace(value)) || (value != null && (value.Length > maximumLength || UrlPattern.IsMatch(value))))
+                throw new InvalidDataException("Catalog text is missing, too long, or contains a URL.");
+        }
+        private static void ValidateDate(string value, string name)
+        {
+            DateTime parsed;
+            if (value == null || value.Length != 10 || !DateTime.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+                throw new InvalidDataException("The catalog contains an invalid " + name + ".");
+        }
+        private static void ValidateStatus(string value)
+        {
+            if (value == null || !ValidStatuses.Contains(value)) throw new InvalidDataException("The catalog contains an unknown recording status.");
         }
 
         private void Prepare(Show show)
@@ -196,8 +304,12 @@ namespace ToolDriveOffline
                 if (File.Exists(path))
                 {
                     List<string> values = new JavaScriptSerializer().Deserialize<List<string>>(File.ReadAllText(path, Encoding.UTF8));
-                    HashSet<string> valid = new HashSet<string>(shows.Select(s => s.id.ToString(CultureInfo.InvariantCulture)));
-                    if (values != null) foreach (string value in values) if (value != null && valid.Contains(value)) Ids.Add(value);
+                    if (values != null) foreach (string value in values)
+                    {
+                        long id;
+                        if (Int64.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out id) && id > 0)
+                            Ids.Add(id.ToString(CultureInfo.InvariantCulture));
+                    }
                 }
             }
             catch { Warning = "The saved list could not be loaded. You can save shows for this session."; }
@@ -216,7 +328,7 @@ namespace ToolDriveOffline
                 if (File.Exists(path)) File.Replace(temp, path, null); else File.Move(temp, path);
                 Warning = null;
             }
-            catch { Warning = "Saved for this session. The browser-independent saved list could not be written to your profile."; }
+            catch { Warning = "Saved for this session. The saved list could not be written to your profile."; }
             finally { try { if (temp != null && File.Exists(temp)) File.Delete(temp); } catch { } }
         }
     }
@@ -282,7 +394,7 @@ namespace ToolDriveOffline
 
     internal sealed class MainForm : Form
     {
-        private readonly Catalog catalog;
+        private Catalog catalog;
         private readonly SavedStore saved;
         private readonly TextBox search = new TextBox();
         private readonly NumericUpDown minimum = new NumericUpDown();
@@ -292,37 +404,48 @@ namespace ToolDriveOffline
         private readonly Label resultCount = Theme.Label("", Theme.Text, Theme.Strong);
         private readonly Label selection = Theme.Label("Select a show to see its recording details.", Theme.Muted, Theme.Small);
         private readonly Label footer = Theme.Label("", Theme.Muted, Theme.Small);
+        private readonly Label stats = Theme.Label("", Theme.Muted, Theme.Small);
+        private readonly Label lastChecked = Theme.Label("", Theme.Muted, Theme.Small);
         private readonly Label empty = Theme.Label("", Theme.Muted, Theme.Body);
         private readonly Button detail = Theme.Button("Show details", true), copy = Theme.Button("Copy date", false), save = Theme.Button("Save show", false), random = Theme.Button("Pick a show", false);
+        private readonly Button update = Theme.Button("Check for catalog updates", false);
         private readonly System.Windows.Forms.Timer searchTimer = new System.Windows.Forms.Timer();
         private readonly Random rng = new Random();
         private List<ShowMatch> matches = new List<ShowMatch>();
         private bool initializing = true;
         private bool refreshing;
+        private bool closing;
+        private CancellationTokenSource updateCancellation;
+        private string catalogWarning;
+        private string updateMessage;
+        private DateTime? lastCheckedUtc;
 
-        public MainForm(Catalog catalog)
+        public MainForm(Catalog catalog, string warning = null)
         {
             this.catalog = catalog; saved = new SavedStore(catalog.shows);
+            catalogWarning = warning; lastCheckedUtc = CatalogCache.LastCheckedUtc;
             Text = "Tool Drive Offline"; StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1000, 700); Size = new Size(1280, 850);
             Theme.Frame(this); KeyPreview = true;
-            Build(); PopulateFilters(); Wire(); initializing = false; RefreshResults(null);
+            Build(); PopulateFilters(); UpdateCatalogHeader(); Wire(); initializing = false; RefreshResults(null);
         }
 
         private void Build()
         {
             TableLayoutPanel root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Padding = new Padding(24, 18, 24, 12), BackColor = Theme.Background };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 99)); root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); root.RowStyles.Add(new RowStyle(SizeType.Absolute, 47));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 145)); root.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
             Controls.Add(root);
-            TableLayoutPanel header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = new Padding(0, 0, 0, 15) };
+            TableLayoutPanel header = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Margin = new Padding(0, 0, 0, 15) };
             header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); header.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            header.RowStyles.Add(new RowStyle(SizeType.Absolute, 43)); header.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            header.RowStyles.Add(new RowStyle(SizeType.Absolute, 43)); header.RowStyles.Add(new RowStyle(SizeType.Absolute, 37)); header.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             Label title = Theme.Label("TOOL  /  Listening index", Theme.Text, Theme.Heading); title.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
             Label subtitle = Theme.Label("Find your next live listen. Pick a show here; find it in Plexamp.", Theme.Muted, Theme.Body); subtitle.Dock = DockStyle.Fill; subtitle.AutoSize = false; subtitle.AutoEllipsis = true; subtitle.Padding = new Padding(0, 4, 0, 0);
             Label offline = Theme.Label("OFFLINE  ·  METADATA ONLY", Theme.Amber, Theme.Small); offline.Anchor = AnchorStyles.Right | AnchorStyles.Bottom; offline.Padding = new Padding(0, 0, 0, 5);
-            int onDriveCount = catalog.shows.Sum(s => s.sources.Count(x => x.status == "OTD"));
-            Label stats = Theme.Label(catalog.shows.Count.ToString("N0") + " shows  ·  " + onDriveCount.ToString("N0") + " on-drive recordings", Theme.Muted, Theme.Small); stats.Anchor = AnchorStyles.Top | AnchorStyles.Right; stats.Padding = new Padding(0, 6, 0, 0); stats.Margin = new Padding(16, 0, 0, 0); offline.Margin = new Padding(16, 0, 0, 0);
+            stats.Anchor = AnchorStyles.Top | AnchorStyles.Right; stats.Padding = new Padding(0, 6, 0, 0); stats.Margin = new Padding(16, 0, 0, 0); offline.Margin = new Padding(16, 0, 0, 0);
             header.Controls.Add(title, 0, 0); header.Controls.Add(subtitle, 0, 1); header.Controls.Add(offline, 1, 0); header.Controls.Add(stats, 1, 1); root.Controls.Add(header, 0, 0);
+            FlowLayoutPanel updateBand = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 2, 0, 0) };
+            update.MinimumSize = new Size(260, 40); update.AccessibleName = "Check online for catalog metadata updates, only when requested";
+            lastChecked.Margin = new Padding(7, 10, 0, 0); updateBand.Controls.Add(update); updateBand.Controls.Add(lastChecked); header.Controls.Add(updateBand, 0, 2); header.SetColumnSpan(updateBand, 2);
 
             TableLayoutPanel workspace = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
             workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240)); workspace.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); root.Controls.Add(workspace, 0, 1);
@@ -356,7 +479,7 @@ namespace ToolDriveOffline
             TableLayoutPanel selectedBand = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0), Padding = new Padding(0, 10, 0, 0) };
             selectedBand.RowStyles.Add(new RowStyle(SizeType.Absolute, 29)); selectedBand.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); selection.Dock = DockStyle.Fill; selection.AutoEllipsis = true; selectedBand.Controls.Add(selection, 0, 0);
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = new Padding(0) }; actions.Controls.Add(detail); actions.Controls.Add(copy); actions.Controls.Add(save); selectedBand.Controls.Add(actions, 0, 1); results.Controls.Add(selectedBand, 0, 3);
-            footer.Dock = DockStyle.Fill; footer.AutoEllipsis = true; footer.Padding = new Padding(0, 14, 0, 0); root.Controls.Add(footer, 0, 2);
+            footer.Dock = DockStyle.Fill; footer.AutoSize = false; footer.AutoEllipsis = true; footer.Padding = new Padding(0, 12, 0, 0); root.Controls.Add(footer, 0, 2);
         }
 
         private static void AddField(TableLayoutPanel panel, string text, Control control)
@@ -390,8 +513,9 @@ namespace ToolDriveOffline
             grid.Columns.Add(column);
         }
 
-        private void PopulateFilters()
+        private void PopulateFilters(FilterOptions preserve = null)
         {
+            foreach (ComboBox combo in new ComboBox[] { ratingMode, status, sort, fromYear, toYear, type }) combo.Items.Clear();
             ratingMode.Items.AddRange(new object[] { new Choice("Rated and unrated", "any"), new Choice("Rated only", "rated"), new Choice("Unrated only", "unrated") });
             status.Items.AddRange(new object[] { new Choice("On the drive", "OTD"), new Choice("All statuses", "all"), new Choice("Confirmed", "Confirmed"), new Choice("Unconfirmed", "Unconfirmed"), new Choice("No known recording", "Unknown") });
             sort.Items.AddRange(new object[] { new Choice("Highest rated", "rating"), new Choice("Newest first", "newest"), new Choice("Oldest first", "oldest"), new Choice("Venue A–Z", "venue") });
@@ -400,7 +524,30 @@ namespace ToolDriveOffline
             type.Items.Add(new Choice("All recording types", "all"));
             foreach (string value in catalog.shows.SelectMany(s => s.sources).Select(s => s.recordingType ?? "unknown").Distinct().OrderBy(x => x == "unknown" ? "zzzz" : x))
                 type.Items.Add(new Choice(Char.ToUpperInvariant(value[0]) + value.Substring(1), value));
-            foreach (ComboBox combo in new ComboBox[] { ratingMode, status, sort, fromYear, toYear, type }) combo.SelectedIndex = 0;
+            SelectChoice(ratingMode, preserve == null ? "any" : preserve.RatingMode, false);
+            SelectChoice(status, preserve == null ? "OTD" : preserve.Status, false);
+            SelectChoice(sort, preserve == null ? "rating" : preserve.Sort, false);
+            SelectChoice(fromYear, preserve == null ? "" : preserve.FromYear, true);
+            SelectChoice(toYear, preserve == null ? "" : preserve.ToYear, true);
+            SelectChoice(type, preserve == null ? "all" : preserve.RecordingType, true);
+        }
+
+        private static void SelectChoice(ComboBox combo, string value, bool retainMissing)
+        {
+            for (int index = 0; index < combo.Items.Count; index++)
+                if (((Choice)combo.Items[index]).Value == value) { combo.SelectedIndex = index; return; }
+            if (retainMissing && !String.IsNullOrEmpty(value))
+            {
+                combo.Items.Add(new Choice(value + " (not in catalog)", value)); combo.SelectedIndex = combo.Items.Count - 1;
+            }
+            else combo.SelectedIndex = 0;
+        }
+
+        private void UpdateCatalogHeader()
+        {
+            int onDriveCount = catalog.shows.Sum(s => s.sources.Count(x => x.status == "OTD"));
+            stats.Text = catalog.shows.Count.ToString("N0") + " shows  ·  " + onDriveCount.ToString("N0") + " on-drive recordings";
+            lastChecked.Text = lastCheckedUtc.HasValue ? "Last checked: " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "Not checked online yet · updates are manual";
         }
 
         private void Wire()
@@ -420,6 +567,7 @@ namespace ToolDriveOffline
             detail.Click += delegate { OpenSelected(); }; copy.Click += delegate { ShowMatch item = Selected(); if (item != null) CopyText(item.Show.date); };
             save.Click += delegate { ShowMatch item = Selected(); if (item != null) ToggleSaved(item.Show); };
             random.Click += delegate { if (matches.Count > 0) OpenShow(matches[rng.Next(matches.Count)].Show); };
+            update.Click += async delegate { await CheckForUpdates(); };
             KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.F) { search.Focus(); search.SelectAll(); e.Handled = true; e.SuppressKeyPress = true; } };
             grid.Resize += delegate { grid.Columns["Taper"].Visible = grid.Width >= 870; grid.Columns["Type"].Visible = grid.Width >= 730; };
             FormClosed += delegate { searchTimer.Dispose(); };
@@ -473,7 +621,61 @@ namespace ToolDriveOffline
         }
         private void UpdateFooter(string message)
         {
-            footer.Text = message ?? saved.Warning ?? ("Snapshot " + catalog.snapshotDate + "  ·  Sound quality /10, not performance rating  ·  No audio or network access");
+            string state = message ?? (updateCancellation != null ? "Checking public show and rating metadata. Your current catalog remains available; use Cancel update to stop." : null)
+                ?? updateMessage ?? saved.Warning ?? catalogWarning ?? "Metadata only · updates are manual · Sound quality /10, not performance rating";
+            footer.Text = "Snapshot " + catalog.snapshotDate + (lastCheckedUtc.HasValue ? "  ·  Last checked " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "  ·  Never checked online") + "\r\n" + state;
+        }
+
+        private async Task CheckForUpdates()
+        {
+            if (updateCancellation != null)
+            {
+                updateCancellation.Cancel(); update.Enabled = false; update.Text = "Canceling update…";
+                UpdateFooter("Canceling the check. Your current catalog remains available."); return;
+            }
+            CancellationTokenSource cancellation = new CancellationTokenSource(); updateCancellation = cancellation;
+            update.Text = "Cancel update"; updateMessage = null; UpdateFooter(null);
+            try
+            {
+                CatalogUpdateResult result = await CatalogUpdater.CheckAsync(catalog, cancellation.Token);
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (closing || IsDisposed || Disposing) return;
+                FilterOptions preserve = Options(); ShowMatch selected = Selected(); long? selectedId = selected == null ? (long?)null : selected.Show.id;
+                try { CatalogCache.Save(result.Catalog, result.CheckedAtUtc); }
+                catch
+                {
+                    updateMessage = "The update could not be saved. Your current catalog is unchanged. Check available disk space or profile permissions and try again.";
+                    return;
+                }
+                catalog = result.Catalog; lastCheckedUtc = result.CheckedAtUtc; catalogWarning = null;
+                initializing = true;
+                try { PopulateFilters(preserve); UpdateCatalogHeader(); }
+                finally { initializing = false; }
+                updateMessage = result.Changes.HasChanges ? "Catalog updated: " + result.Changes.Summary : "Catalog is up to date. No show or recording metadata changed.";
+                RefreshResults(selectedId);
+            }
+            catch (OperationCanceledException)
+            {
+                if (!closing && !IsDisposed && !Disposing) updateMessage = cancellation.IsCancellationRequested ? "Update canceled. Your current catalog is unchanged." : "The update check timed out. Your current catalog is unchanged; try again later.";
+            }
+            catch (Exception)
+            {
+                if (!closing && !IsDisposed && !Disposing) updateMessage = "The catalog update could not be completed. Your current catalog is unchanged. Check your connection and try again later.";
+            }
+            finally
+            {
+                updateCancellation = null; cancellation.Dispose();
+                if (!closing && !IsDisposed && !Disposing)
+                {
+                    update.Enabled = true; update.Text = "Check for catalog updates"; UpdateFooter(null);
+                }
+            }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            closing = true; if (updateCancellation != null) updateCancellation.Cancel(); searchTimer.Stop();
+            base.OnFormClosing(e); if (e.Cancel) closing = false;
         }
         private void ToggleSaved(Show show) { saved.Toggle(show); RefreshResults(show.id); }
         private void OpenSelected() { ShowMatch item = Selected(); if (item != null) OpenShow(item.Show); }
@@ -578,7 +780,11 @@ namespace ToolDriveOffline
         private static void Main()
         {
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
-            try { Application.Run(new MainForm(Catalog.Load())); }
+            try
+            {
+                string warning; Catalog catalog = CatalogCache.Load(out warning);
+                Application.Run(new MainForm(catalog, warning));
+            }
             catch (Exception error) { MessageBox.Show("Tool Drive Offline could not start.\r\n\r\n" + error.Message, "Tool Drive Offline", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }
     }

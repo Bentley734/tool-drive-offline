@@ -19,7 +19,7 @@ jobs:
       - name: Build the native Windows app
         shell: pwsh
         run: '& ".\Windows App\build-app.ps1"'
-      - name: Check the embedded catalog and source filters
+      - name: Check catalog filters, metadata updates, and offline cache recovery
         shell: pwsh
         run: '& ".\Windows App\test-app.ps1"'
       - name: Verify the offline distribution

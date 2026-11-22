@@ -9,14 +9,16 @@ if (-not (Test-Path -LiteralPath $compilerPath)) {
     $compilerPath = Join-Path $env:WINDIR 'Microsoft.NET/Framework/v4.0.30319/csc.exe'
 }
 if (-not (Test-Path -LiteralPath $compilerPath)) { throw 'The .NET Framework C# compiler was not found.' }
-$checkPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ToolDriveOffline.FilterChecks.' + [guid]::NewGuid().ToString('N') + '.exe')
-try {
-    $compilerArgs = @('/nologo', '/target:exe', '/codepage:65001', ('/out:' + $checkPath), '/reference:System.Core.dll', (Join-Path $projectDir 'FilterChecks.cs'))
-    & $compilerPath @compilerArgs
-    if ($LASTEXITCODE -ne 0) { throw ('Check compilation failed: ' + $LASTEXITCODE) }
-    & $checkPath $ExecutablePath
-    if ($LASTEXITCODE -ne 0) { throw ('Catalog checks failed: ' + $LASTEXITCODE) }
-}
-finally {
-    if (Test-Path -LiteralPath $checkPath) { Remove-Item -LiteralPath $checkPath -Force }
+foreach ($checkName in @('FilterChecks', 'UpdateChecks')) {
+    $checkPath = Join-Path ([System.IO.Path]::GetTempPath()) ('ToolDriveOffline.' + $checkName + '.' + [guid]::NewGuid().ToString('N') + '.exe')
+    try {
+        $compilerArgs = @('/nologo', '/target:exe', '/codepage:65001', ('/out:' + $checkPath), '/reference:System.Core.dll', '/reference:System.Web.Extensions.dll', (Join-Path $projectDir ($checkName + '.cs')))
+        & $compilerPath @compilerArgs
+        if ($LASTEXITCODE -ne 0) { throw ('Check compilation failed: ' + $LASTEXITCODE) }
+        & $checkPath $ExecutablePath
+        if ($LASTEXITCODE -ne 0) { throw ($checkName + ' failed: ' + $LASTEXITCODE) }
+    }
+    finally {
+        if (Test-Path -LiteralPath $checkPath) { Remove-Item -LiteralPath $checkPath -Force }
+    }
 }

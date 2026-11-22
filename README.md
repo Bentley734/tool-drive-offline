@@ -2,7 +2,7 @@
 
 A native Windows show browser for finding a Tool recording to hear in your own Plexamp library. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
 
-The app runs offline and contains metadata only: no audio files, players, streaming links, or download links. An optional single-file HTML version is also included.
+The app works offline and contains metadata only: no audio files, players, streaming links, or download links. The Windows app can optionally check for catalog updates when you request them. An optional single-file HTML version is also included.
 
 ## Features
 
@@ -12,10 +12,11 @@ The app runs offline and contains metadata only: no audio files, players, stream
 - Inspect every recording source, including taper, gear, lineage, length, and individual sound rating.
 - Read documented setlists and save a personal listening shortlist.
 - Copy a date or `Tool YYYY-MM-DD` to paste into Plexamp search.
+- Check for new catalog entries and sound ratings, then keep the refreshed catalog available offline.
 
-Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings are frozen in the bundled snapshot, and vote counts are unavailable.
+Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings reflect the bundled snapshot or your latest successful catalog update. Vote counts are unavailable.
 
-The default status, **On the drive**, limits results to recordings marked available in the source archive. Other statuses include confirmed, unconfirmed, and shows without a known recording. The header reports the **1,342 on-drive recordings** in the bundled snapshot separately from all documented shows. This status does not scan or describe your Plex library.
+The default status, **On the drive**, limits results to recordings marked available in the source archive. Other statuses include confirmed, unconfirmed, and shows without a known recording. The header reports on-drive recordings separately from all documented shows; the bundled snapshot contains **1,342 on-drive recordings**, and this count refreshes with catalog updates. This status does not scan or describe your Plex library.
 
 ## Run the Windows app
 
@@ -31,11 +32,27 @@ Saved shows are stored in:
 
 If the app cannot write that file, changes remain available for the current session and the app displays a notice.
 
+## Catalog updates in Windows
+
+Click **Check for catalog updates** near the top of the app while connected to the internet. The app downloads the Tool Drive Project's four public metadata files and reports new shows, newly available recordings, rating changes, and other changed show details. You can cancel a check while it runs.
+
+Checks happen only when requested. Starting the app and browsing a previously downloaded catalog work offline. The updater reads the site's **published metadata snapshot**; a recent rating or recording may not appear until the site refreshes those files. **Last checked** records when your request succeeded, rather than promising that every entry was edited at that time.
+
+A complete update is validated and saved before it replaces the active catalog. Failed, canceled, malformed, or suspiciously incomplete updates leave the working catalog unchanged. Your current filters, search, and saved show IDs are preserved.
+
+The local catalog cache is separate from the executable and saved shows:
+
+```text
+%LOCALAPPDATA%\Tool Drive Offline\catalog-update.json
+```
+
+Later launches use this cache without contacting the site. If it cannot be read, the app falls back to its embedded catalog and displays a notice. The updater fetches metadata only: no audio, media links, account credentials, Plex library data, or application executables.
+
 ## Optional HTML version
 
 Open `index.html` directly in a modern browser. Everything it needs is included in that file; no web server or internet connection is required.
 
-The HTML version stores its shortlist in browser storage. That list is separate from the Windows app's saved shows and depends on the browser allowing local storage.
+The HTML version remains a static snapshot and does not include the Windows catalog-update control. It stores its shortlist in browser storage. That list is separate from the Windows app's saved shows and depends on the browser allowing local storage.
 
 ## Build and test
 
@@ -47,7 +64,7 @@ Run these commands in PowerShell from the repository root. Building uses the C# 
 
 The executable is written to `Windows App\dist\Tool Drive Offline.exe`.
 
-Run the 14 catalog and filter checks with:
+Run the 14 catalog/filter assertions and 29 updater assertions with:
 
 ```powershell
 & ".\Windows App\test-app.ps1"
@@ -55,11 +72,11 @@ Run the 14 catalog and filter checks with:
 
 Validate that the HTML and native catalogs agree and contain no network or audio links with `python verify_catalog.py`. The Windows build and these checks also run in GitHub Actions.
 
-The main application source is `Windows App/ToolDriveOffline.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
+The main application source is `Windows App/ToolDriveOffline.cs`; download, import, comparison, and cache code is in `Windows App/CatalogUpdates.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
 
-## Refresh the metadata
+## Rebuild the bundled metadata
 
-Refreshing is an explicit maintenance step that **requires internet access** and Python 3.9 or newer. The builder requests four public metadata files; it does not request audio. It removes URLs from exported metadata and rejects network or media references in the generated HTML.
+To change the snapshot bundled with the source and HTML version, refreshing is an explicit maintenance step that **requires internet access** and Python 3.9 or newer. The builder requests four public metadata files; it does not request audio. It removes URLs from exported metadata and rejects network or media references in the generated HTML.
 
 ```powershell
 python build_catalog.py --refresh

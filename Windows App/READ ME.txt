@@ -27,10 +27,26 @@ describe what is in your Plex library.
 OFFLINE DATA
 1,299 shows from the Tool Drive Project's public metadata, downloaded
 November 21, 2026. Setlists originate from setlist.fm and may be partial.
-This is an independent personal offline browser. Data and ratings are
-frozen at that snapshot. No audio was downloaded or bundled, and there
-are no streaming, download, Google Drive, or other external links.
-The app makes no network requests and has no automatic updater.
+This is an independent personal offline browser. The bundled data remains
+available until you request a successful catalog update. No audio was
+downloaded or bundled, and there are no streaming or download links.
+
+CHECK FOR CATALOG UPDATES
+Click Check for catalog updates at the top of the window while connected
+to the internet. The app requests only four public metadata files from
+Tool Drive Project. It reports new shows, recordings, ratings, and other
+changed metadata, then stores a validated copy for later offline use.
+Cancel update stops an active check. A failed or canceled check keeps the
+working catalog. Your search, filters, and saved shows are preserved.
+
+The app never checks automatically at startup. Recent changes may take
+time to reach the site's published metadata files. Last checked shows when
+your check succeeded; it is not the edit date of every recording.
+This feature updates catalog data, not the application EXE.
+
+Updated metadata is cached separately at:
+%LOCALAPPDATA%\Tool Drive Offline\catalog-update.json
+If that cache cannot be loaded, the embedded catalog remains available.
 
 SAVED SHOWS
 Saved show IDs are stored in:

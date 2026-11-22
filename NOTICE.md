@@ -9,7 +9,7 @@ The metadata importer reads these public metadata files:
 - `data/03-songs.js`
 - `data/09-setlist-history.js`
 
-It keeps an explicit set of metadata fields, removes URLs (including links inside recording notes), and maps the ordered setlist indexes to song titles. It never requests audio. The original metadata is represented in both `catalog.json` and the generated `index.html`; the Windows build embeds `catalog.json`.
+It keeps an explicit set of metadata fields, removes URLs (including links inside recording notes), and maps the ordered setlist indexes to song titles. It never requests audio. The original metadata is represented in both `catalog.json` and the generated `index.html`; the Windows build embeds `catalog.json`. On request, the Windows catalog updater reads the same four metadata endpoints and stores a validated, URL-free local snapshot. These runtime updates do not change the repository files or the separate HTML snapshot.
 
 Sound ratings are source-level averages out of 10 from the snapshot. They describe recording quality. Missing or zero ratings are treated as unrated. Vote counts are not present in the public snapshot.
 
