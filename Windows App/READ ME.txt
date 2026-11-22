@@ -32,15 +32,16 @@ available until you request a successful catalog update. No audio was
 downloaded or bundled, and there are no streaming or download links.
 
 CHECK FOR CATALOG UPDATES
-Click Check for catalog updates at the top of the window while connected
-to the internet. The app requests only four public metadata files from
+The app displays the saved catalog immediately, then automatically checks
+for updates once each time you open it. You can keep browsing during the
+check. Use Check for catalog updates to check again later. The app requests only four public metadata files from
 Tool Drive Project. It reports new shows, recordings, ratings, and other
 changed metadata, then stores a validated copy for later offline use.
 Cancel update stops an active check. A failed or canceled check keeps the
 working catalog. Your search, filters, and saved shows are preserved.
 
-The app never checks automatically at startup. Recent changes may take
-time to reach the site's published metadata files. Last checked shows when
+If you are offline, the saved catalog remains usable. Recent changes may
+take time to reach the site's published metadata files. Last checked shows when
 your check succeeded; it is not the edit date of every recording.
 This feature updates catalog data, not the application EXE.
 
@@ -54,6 +55,15 @@ Saved show IDs are stored in:
 They remain saved when you move or replace the EXE on the same Windows
 account. This list is separate from the earlier HTML browser's saved list.
 If the app cannot save the file, it reports that the list is session-only.
+
+COLUMN WIDTHS AND LARGE LISTS
+Drag column header edges to resize the columns. Widths are saved after a
+short pause and when the app closes normally, and restored next time.
+Settings are stored separately at:
+%LOCALAPPDATA%\Tool Drive Offline\column-layout.json
+All columns remain available through horizontal scrolling when needed.
+Large lists use virtual rows and create display values as needed instead
+of rebuilding every cell after a filter changes.
 
 SOURCE AND REBUILD
 The project folder contains the C# source, icon, manifest, and build-app.ps1.

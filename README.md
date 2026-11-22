@@ -2,7 +2,7 @@
 
 A native Windows show browser for finding a Tool recording to hear in your own Plexamp library. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
 
-The app works offline and contains metadata only: no audio files, players, streaming links, or download links. The Windows app can optionally check for catalog updates when you request them. An optional single-file HTML version is also included.
+The app works offline and contains metadata only: no audio files, players, streaming links, or download links. The Windows app checks for catalog updates in the background once when it opens; you can also check manually or cancel a check. An optional single-file HTML version is also included.
 
 ## Features
 
@@ -12,7 +12,9 @@ The app works offline and contains metadata only: no audio files, players, strea
 - Inspect every recording source, including taper, gear, lineage, length, and individual sound rating.
 - Read documented setlists and save a personal listening shortlist.
 - Copy a date or `Tool YYYY-MM-DD` to paste into Plexamp search.
-- Check for new catalog entries and sound ratings, then keep the refreshed catalog available offline.
+- Check for new catalog entries and sound ratings at startup, then keep the refreshed catalog available offline.
+- Keep resized column widths between launches, including when moving to another display scale.
+- Browse large result lists using virtual rows and cell values supplied as needed.
 
 Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings reflect the bundled snapshot or your latest successful catalog update. Vote counts are unavailable.
 
@@ -22,7 +24,7 @@ The default status, **On the drive**, limits results to recordings marked availa
 
 Requires Windows and **.NET Framework 4.8**. Download the Windows package from the [latest release](https://github.com/Bentley734/tool-drive-offline/releases/latest), extract it, and open `Tool Drive Offline.exe`. The executable embeds its catalog and needs no server or sidecar data files.
 
-Use **Ctrl+F** to focus search. Double-click a row or press **Enter** on a selected row to open details. Drag column-header edges to adjust column widths. Type a minimum rating and press **Tab** to apply it, or use the numeric spinner.
+Use **Ctrl+F** to focus search. Double-click a row or press **Enter** on a selected row to open details. Drag column-header edges to adjust column widths; changes are remembered between launches. All seven columns remain available through horizontal scrolling when needed. Type a minimum rating and press **Tab** to apply it, or use the numeric spinner.
 
 Saved shows are stored in:
 
@@ -32,11 +34,13 @@ Saved shows are stored in:
 
 If the app cannot write that file, changes remain available for the current session and the app displays a notice.
 
+Column widths are stored separately in `%LOCALAPPDATA%\Tool Drive Offline\column-layout.json`. Widths are stored in logical display units and scaled for the monitor when restored. The app saves after a short pause in resizing and again on normal close; unreadable settings fall back to defaults.
+
 ## Catalog updates in Windows
 
-Click **Check for catalog updates** near the top of the app while connected to the internet. The app downloads the Tool Drive Project's four public metadata files and reports new shows, newly available recordings, rating changes, and other changed show details. You can cancel a check while it runs.
+The saved catalog is displayed immediately, then a background update check starts once per launch. Click **Check for catalog updates** near the top to check again later while connected to the internet. The app downloads the Tool Drive Project's four public metadata files and reports new shows, newly available recordings, rating changes, and other changed show details. You can cancel a check while it runs.
 
-Checks happen only when requested. Starting the app and browsing a previously downloaded catalog work offline. The updater reads the site's **published metadata snapshot**; a recent rating or recording may not appear until the site refreshes those files. **Last checked** records when your request succeeded, rather than promising that every entry was edited at that time.
+The automatic check does not block browsing. You can cancel it; if there is no connection, the saved catalog remains usable. Additional checks happen only when requested. The updater reads the site's **published metadata snapshot**; a recent rating or recording may not appear until the site refreshes those files. **Last checked** records when your request succeeded, rather than promising that every entry was edited at that time.
 
 A complete update is validated and saved before it replaces the active catalog. Failed, canceled, malformed, or suspiciously incomplete updates leave the working catalog unchanged. Your current filters, search, and saved show IDs are preserved.
 
@@ -46,7 +50,7 @@ The local catalog cache is separate from the executable and saved shows:
 %LOCALAPPDATA%\Tool Drive Offline\catalog-update.json
 ```
 
-Later launches use this cache without contacting the site. If it cannot be read, the app falls back to its embedded catalog and displays a notice. The updater fetches metadata only: no audio, media links, account credentials, Plex library data, or application executables.
+Later launches first load this cache, then check the site in the background. If it cannot be read, the app falls back to its embedded catalog and displays a notice. The updater fetches metadata only: no audio, media links, account credentials, Plex library data, or application executables.
 
 ## Optional HTML version
 
@@ -64,13 +68,15 @@ Run these commands in PowerShell from the repository root. Building uses the C# 
 
 The executable is written to `Windows App\dist\Tool Drive Offline.exe`.
 
-Run the 14 catalog/filter assertions and 29 updater assertions with:
+Run the catalog/filter, updater, column-layout, and hidden-grid checks with:
 
 ```powershell
 & ".\Windows App\test-app.ps1"
 ```
 
 Validate that the HTML and native catalogs agree and contain no network or audio links with `python verify_catalog.py`. The Windows build and these checks also run in GitHub Actions.
+
+The local hidden-control benchmark also checks all 1,299 results, virtual cell values, selected-row actions, and width conversions at different display scales. It does not open a window or perform startup update requests.
 
 The main application source is `Windows App/ToolDriveOffline.cs`; download, import, comparison, and cache code is in `Windows App/CatalogUpdates.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
 

@@ -23,7 +23,8 @@ $compilerArgs = @(
     '/reference:System.Windows.Forms.dll', '/reference:System.Web.Extensions.dll', '/reference:System.Net.Http.dll',
     (Join-Path $projectDir 'AssemblyInfo.cs'),
     (Join-Path $projectDir 'ToolDriveOffline.cs'),
-    (Join-Path $projectDir 'CatalogUpdates.cs')
+    (Join-Path $projectDir 'CatalogUpdates.cs'),
+    (Join-Path $projectDir 'ColumnLayout.cs')
 )
 & $compilerPath @compilerArgs
 if ($LASTEXITCODE -ne 0) { throw ('C# compilation failed: ' + $LASTEXITCODE) }

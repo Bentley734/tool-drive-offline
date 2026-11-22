@@ -382,7 +382,6 @@ namespace ToolDriveOffline
 
     internal sealed class GridRow
     {
-        public ShowMatch Match { get; set; }
         public string Date { get; set; }
         public string Venue { get; set; }
         public string Location { get; set; }
@@ -390,6 +389,20 @@ namespace ToolDriveOffline
         public string Sources { get; set; }
         public string Type { get; set; }
         public string Taper { get; set; }
+        public object Value(int columnIndex)
+        {
+            switch (columnIndex)
+            {
+                case 0: return Date;
+                case 1: return Venue;
+                case 2: return Location;
+                case 3: return Sound;
+                case 4: return Sources;
+                case 5: return Type;
+                case 6: return Taper;
+                default: return null;
+            }
+        }
     }
 
     internal sealed class MainForm : Form
@@ -410,8 +423,11 @@ namespace ToolDriveOffline
         private readonly Button detail = Theme.Button("Show details", true), copy = Theme.Button("Copy date", false), save = Theme.Button("Save show", false), random = Theme.Button("Pick a show", false);
         private readonly Button update = Theme.Button("Check for catalog updates", false);
         private readonly System.Windows.Forms.Timer searchTimer = new System.Windows.Forms.Timer();
+        private readonly System.Windows.Forms.Timer columnSaveTimer = new System.Windows.Forms.Timer();
         private readonly Random rng = new Random();
+        private readonly Dictionary<string, int> defaultColumnWidths = new Dictionary<string, int>(StringComparer.Ordinal);
         private List<ShowMatch> matches = new List<ShowMatch>();
+        private GridRow[] displayRows = new GridRow[0];
         private bool initializing = true;
         private bool refreshing;
         private bool closing;
@@ -419,6 +435,11 @@ namespace ToolDriveOffline
         private string catalogWarning;
         private string updateMessage;
         private DateTime? lastCheckedUtc;
+        private bool startupUpdateStarted;
+        private bool columnsReady;
+        private bool applyingColumnLayout;
+        private bool columnWidthsDirty;
+        private string columnLayoutWarning;
 
         public MainForm(Catalog catalog, string warning = null)
         {
@@ -444,7 +465,7 @@ namespace ToolDriveOffline
             stats.Anchor = AnchorStyles.Top | AnchorStyles.Right; stats.Padding = new Padding(0, 6, 0, 0); stats.Margin = new Padding(16, 0, 0, 0); offline.Margin = new Padding(16, 0, 0, 0);
             header.Controls.Add(title, 0, 0); header.Controls.Add(subtitle, 0, 1); header.Controls.Add(offline, 1, 0); header.Controls.Add(stats, 1, 1); root.Controls.Add(header, 0, 0);
             FlowLayoutPanel updateBand = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = new Padding(0), Padding = new Padding(0, 2, 0, 0) };
-            update.MinimumSize = new Size(260, 40); update.AccessibleName = "Check online for catalog metadata updates, only when requested";
+            update.MinimumSize = new Size(260, 40); update.AccessibleName = "Check catalog metadata updates now; a check also runs once at launch";
             lastChecked.Margin = new Padding(7, 10, 0, 0); updateBand.Controls.Add(update); updateBand.Controls.Add(lastChecked); header.Controls.Add(updateBand, 0, 2); header.SetColumnSpan(updateBand, 2);
 
             TableLayoutPanel workspace = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
@@ -491,6 +512,8 @@ namespace ToolDriveOffline
         private void ConfigureGrid()
         {
             grid.Dock = DockStyle.Fill; grid.BackgroundColor = Theme.Panel; grid.BorderStyle = BorderStyle.None; grid.AutoGenerateColumns = false;
+            grid.VirtualMode = true; grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            grid.ScrollBars = ScrollBars.Both;
             grid.ReadOnly = true; grid.AllowUserToAddRows = false; grid.AllowUserToDeleteRows = false; grid.AllowUserToResizeRows = false;
             grid.RowHeadersVisible = false; grid.MultiSelect = false; grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.EnableHeadersVisualStyles = false; grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal; grid.GridColor = Theme.Line;
@@ -499,18 +522,88 @@ namespace ToolDriveOffline
             grid.DefaultCellStyle.BackColor = Theme.Panel; grid.DefaultCellStyle.ForeColor = Theme.Text; grid.DefaultCellStyle.Font = Theme.Body;
             grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(59, 64, 46); grid.DefaultCellStyle.SelectionForeColor = Theme.Text;
             grid.DefaultCellStyle.Padding = new Padding(7, 0, 7, 0); grid.RowTemplate.Height = 46;
-            AddColumn("Date", "DATE", 111, false); AddColumn("Venue", "VENUE", 180, true); AddColumn("Location", "LOCATION", 172, false);
-            AddColumn("Sound", "SOUND /10", 91, false); AddColumn("Sources", "SOURCES", 79, false); AddColumn("Type", "BEST TYPE", 110, false); AddColumn("Taper", "TAPER", 139, false);
+            AddColumn("Date", "DATE", 140); AddColumn("Venue", "VENUE", 250); AddColumn("Location", "LOCATION", 210);
+            AddColumn("Sound", "SOUND /10", 112); AddColumn("Sources", "SOURCES", 100); AddColumn("Type", "BEST TYPE", 130); AddColumn("Taper", "TAPER", 175);
             grid.Columns["Sound"].DefaultCellStyle.ForeColor = Theme.Amber; grid.Columns["Sound"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
             grid.Columns["Date"].DefaultCellStyle.Font = Theme.Mono; grid.Columns["Sources"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
             grid.AccessibleName = "Matching shows. Press Enter to open recording details.";
+            grid.CellValueNeeded += delegate(object sender, DataGridViewCellValueEventArgs e)
+            {
+                if (e.RowIndex >= 0 && e.RowIndex < matches.Count) e.Value = DisplayRow(e.RowIndex).Value(e.ColumnIndex);
+            };
             typeof(DataGridView).GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(grid, true, null);
         }
-        private void AddColumn(string property, string header, int width, bool fill)
+        private void AddColumn(string property, string header, int width)
         {
-            DataGridViewTextBoxColumn column = new DataGridViewTextBoxColumn { Name = property, DataPropertyName = property, HeaderText = header, Width = width, MinimumWidth = fill ? 145 : width, SortMode = DataGridViewColumnSortMode.NotSortable };
-            if (fill) column.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            DataGridViewTextBoxColumn column = new DataGridViewTextBoxColumn { Name = property, HeaderText = header, Width = width, MinimumWidth = property == "Date" ? 130 : 48, SortMode = DataGridViewColumnSortMode.NotSortable, AutoSizeMode = DataGridViewAutoSizeColumnMode.None, Resizable = DataGridViewTriState.True };
+            defaultColumnWidths[property] = width;
             grid.Columns.Add(column);
+        }
+
+        private GridRow DisplayRow(int rowIndex)
+        {
+            GridRow row = displayRows[rowIndex];
+            if (row != null) return row;
+            ShowMatch item = matches[rowIndex];
+            row = new GridRow { Date = item.Show.date, Venue = (saved.Contains(item.Show) ? "★  " : "") + item.Show.venue,
+                Location = TextUtil.Location(item.Show), Sound = item.Rating.HasValue ? item.Rating.Value.ToString("0.0", CultureInfo.InvariantCulture) : "—",
+                Sources = item.Sources.Count(x => x.status != "Unknown").ToString(CultureInfo.InvariantCulture), Type = TextUtil.Display(item.BestSource.recordingType), Taper = TextUtil.Display(item.BestSource.taper) };
+            displayRows[rowIndex] = row; return row;
+        }
+
+        private double CurrentGridDpi()
+        {
+            using (Graphics graphics = grid.CreateGraphics()) return Math.Max(1.0, graphics.DpiX);
+        }
+
+        private void RestoreColumnLayout()
+        {
+            applyingColumnLayout = true; columnsReady = false; columnSaveTimer.Stop();
+            try
+            {
+                Dictionary<string, int> widths = ColumnLayoutStore.Load(out columnLayoutWarning);
+                ApplyColumnWidths(widths, CurrentGridDpi()); columnWidthsDirty = false;
+            }
+            catch { columnLayoutWarning = "Column widths could not be loaded. You can still resize the columns."; }
+            finally { applyingColumnLayout = false; columnsReady = true; }
+            UpdateFooter(null);
+        }
+
+        private void ApplyColumnWidths(IDictionary<string, int> widths, double dpi)
+        {
+            grid.SuspendLayout();
+            try
+            {
+                foreach (DataGridViewColumn column in grid.Columns)
+                {
+                    int logical;
+                    if (widths == null || !widths.TryGetValue(column.Name, out logical)) logical = defaultColumnWidths[column.Name];
+                    logical = Math.Max(column.Name == "Date" ? 130 : 48, Math.Min(3000, logical));
+                    column.AutoSizeMode = DataGridViewAutoSizeColumnMode.None; column.Visible = true;
+                    column.MinimumWidth = Math.Max(2, (int)Math.Round((column.Name == "Date" ? 130 : 48) * dpi / 96.0));
+                    column.Width = Math.Max(column.MinimumWidth, (int)Math.Round(logical * dpi / 96.0));
+                }
+            }
+            finally { grid.ResumeLayout(); }
+        }
+
+        private Dictionary<string, int> CaptureColumnWidths(double dpi)
+        {
+            Dictionary<string, int> widths = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (DataGridViewColumn column in grid.Columns)
+                widths[column.Name] = Math.Max(40, Math.Min(3000, (int)Math.Round(column.Width * 96.0 / dpi)));
+            return widths;
+        }
+
+        private void FlushColumnLayout()
+        {
+            columnSaveTimer.Stop(); if (!columnsReady || !columnWidthsDirty || applyingColumnLayout) return;
+            try
+            {
+                if (ColumnLayoutStore.Save(CaptureColumnWidths(CurrentGridDpi()), out columnLayoutWarning)) columnWidthsDirty = false;
+            }
+            catch { columnLayoutWarning = "Column widths could not be saved. The current layout remains available for this session."; }
+            if (!closing && !IsDisposed && !Disposing) UpdateFooter(null);
         }
 
         private void PopulateFilters(FilterOptions preserve = null)
@@ -547,12 +640,13 @@ namespace ToolDriveOffline
         {
             int onDriveCount = catalog.shows.Sum(s => s.sources.Count(x => x.status == "OTD"));
             stats.Text = catalog.shows.Count.ToString("N0") + " shows  ·  " + onDriveCount.ToString("N0") + " on-drive recordings";
-            lastChecked.Text = lastCheckedUtc.HasValue ? "Last checked: " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "Not checked online yet · updates are manual";
+            lastChecked.Text = lastCheckedUtc.HasValue ? "Last checked: " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "Checks once at launch · saved catalog works offline";
         }
 
         private void Wire()
         {
-            searchTimer.Interval = 180; searchTimer.Tick += delegate { searchTimer.Stop(); RefreshResults(null); };
+            searchTimer.Interval = 200; searchTimer.Tick += delegate { searchTimer.Stop(); RefreshResults(null); };
+            columnSaveTimer.Interval = 500; columnSaveTimer.Tick += delegate { FlushColumnLayout(); };
             search.TextChanged += delegate { if (!initializing) { searchTimer.Stop(); searchTimer.Start(); } };
             minimum.ValueChanged += delegate { if (!initializing) RefreshResults(null); };
             foreach (ComboBox combo in new ComboBox[] { fromYear, toYear, status, type, ratingMode, sort }) combo.SelectedIndexChanged += delegate
@@ -567,11 +661,26 @@ namespace ToolDriveOffline
             detail.Click += delegate { OpenSelected(); }; copy.Click += delegate { ShowMatch item = Selected(); if (item != null) CopyText(item.Show.date); };
             save.Click += delegate { ShowMatch item = Selected(); if (item != null) ToggleSaved(item.Show); };
             random.Click += delegate { if (matches.Count > 0) OpenShow(matches[rng.Next(matches.Count)].Show); };
-            update.Click += async delegate { await CheckForUpdates(); };
+            update.Click += async delegate { startupUpdateStarted = true; await CheckForUpdates(false); };
             KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Control && e.KeyCode == Keys.F) { search.Focus(); search.SelectAll(); e.Handled = true; e.SuppressKeyPress = true; } };
-            grid.Resize += delegate { grid.Columns["Taper"].Visible = grid.Width >= 870; grid.Columns["Type"].Visible = grid.Width >= 730; };
-            FormClosed += delegate { searchTimer.Dispose(); };
-            Shown += delegate { search.Focus(); };
+            grid.ColumnWidthChanged += delegate
+            {
+                if (!columnsReady || applyingColumnLayout || initializing || closing) return;
+                columnWidthsDirty = true; columnSaveTimer.Stop(); columnSaveTimer.Start();
+            };
+            FormClosed += delegate { searchTimer.Dispose(); columnSaveTimer.Dispose(); };
+            Shown += delegate
+            {
+                RestoreColumnLayout(); search.Focus();
+                BeginInvoke(new Action(StartStartupUpdate));
+            };
+        }
+
+        private async void StartStartupUpdate()
+        {
+            if (startupUpdateStarted || closing || IsDisposed || Disposing) return;
+            startupUpdateStarted = true;
+            if (updateCancellation == null) await CheckForUpdates(true);
         }
 
         private static string Value(ComboBox combo) { Choice choice = combo.SelectedItem as Choice; return choice == null ? "" : choice.Value; }
@@ -588,30 +697,46 @@ namespace ToolDriveOffline
         private void RefreshResults(long? selectedId)
         {
             if (initializing) return; searchTimer.Stop(); refreshing = true;
+            int previousIndex = grid.CurrentCell == null ? 0 : grid.CurrentCell.RowIndex;
+            int previousColumn = grid.CurrentCell == null ? 0 : grid.CurrentCell.ColumnIndex;
+            int oldTopIndex = grid.IsHandleCreated ? grid.FirstDisplayedScrollingRowIndex : -1;
+            long? oldTopId = selectedId.HasValue && oldTopIndex >= 0 && oldTopIndex < matches.Count ? (long?)matches[oldTopIndex].Show.id : null;
+            int horizontalOffset = grid.HorizontalScrollingOffset;
+            grid.SuspendLayout();
             try
             {
                 matches = catalog.Filter(Options(), saved.Ids);
-                List<GridRow> rows = matches.Select(item => new GridRow { Match = item, Date = item.Show.date, Venue = (saved.Contains(item.Show) ? "★  " : "") + item.Show.venue,
-                    Location = TextUtil.Location(item.Show), Sound = item.Rating.HasValue ? item.Rating.Value.ToString("0.0", CultureInfo.InvariantCulture) : "—",
-                    Sources = item.Sources.Count(x => x.status != "Unknown").ToString(CultureInfo.InvariantCulture), Type = TextUtil.Display(item.BestSource.recordingType), Taper = TextUtil.Display(item.BestSource.taper) }).ToList();
-                grid.DataSource = new BindingList<GridRow>(rows); grid.ClearSelection();
-                if (rows.Count > 0)
+                displayRows = new GridRow[matches.Count];
+                if (grid.RowCount != matches.Count) grid.RowCount = matches.Count;
+                grid.ClearSelection();
+                if (matches.Count > 0)
                 {
-                    int index = selectedId.HasValue ? rows.FindIndex(x => x.Match.Show.id == selectedId.Value) : 0; if (index < 0) index = 0;
-                    grid.CurrentCell = grid.Rows[index].Cells[0]; grid.Rows[index].Selected = true;
+                    int index = selectedId.HasValue ? matches.FindIndex(x => x.Show.id == selectedId.Value) : 0;
+                    if (index < 0) index = Math.Min(previousIndex, matches.Count - 1);
+                    grid.CurrentCell = grid[Math.Min(previousColumn, grid.ColumnCount - 1), index];
+                    grid.CurrentCell.Selected = true;
+                    if (grid.IsHandleCreated && selectedId.HasValue && oldTopId.HasValue)
+                    {
+                        int top = matches.FindIndex(x => x.Show.id == oldTopId.Value);
+                        int visibleRows = Math.Max(1, grid.DisplayedRowCount(false));
+                        if (top >= 0 && index >= top && index < top + visibleRows) grid.FirstDisplayedScrollingRowIndex = top;
+                    }
+                    else if (grid.IsHandleCreated) grid.FirstDisplayedScrollingRowIndex = 0;
+                    if (grid.IsHandleCreated) grid.HorizontalScrollingOffset = horizontalOffset;
                 }
                 resultCount.Text = matches.Count.ToString("N0") + (savedOnly.Checked ? " saved shows" : " shows");
                 savedOnly.Text = "Saved (" + saved.Ids.Count.ToString(CultureInfo.InvariantCulture) + ")"; random.Enabled = matches.Count > 0;
                 empty.Visible = matches.Count == 0; grid.Visible = matches.Count > 0;
                 if (empty.Visible) { empty.BringToFront(); empty.Text = savedOnly.Checked && saved.Ids.Count == 0 ? "Your listening shortlist starts here.\r\n\r\nUncheck Saved, then save a show you would like to hear." : "No shows match these filters.\r\n\r\nTry a lower rating, a wider year range, or another recording status."; }
+                grid.Invalidate();
             }
-            finally { refreshing = false; }
+            finally { grid.ResumeLayout(); refreshing = false; }
             UpdateSelection(); UpdateFooter(null);
         }
         private ShowMatch Selected()
         {
-            GridRow row = grid.CurrentRow == null ? null : grid.CurrentRow.DataBoundItem as GridRow;
-            return grid.Visible && row != null ? row.Match : null;
+            int index = grid.CurrentCell == null ? -1 : grid.CurrentCell.RowIndex;
+            return index >= 0 && index < matches.Count ? matches[index] : null;
         }
         private void UpdateSelection()
         {
@@ -622,14 +747,16 @@ namespace ToolDriveOffline
         private void UpdateFooter(string message)
         {
             string state = message ?? (updateCancellation != null ? "Checking public show and rating metadata. Your current catalog remains available; use Cancel update to stop." : null)
-                ?? updateMessage ?? saved.Warning ?? catalogWarning ?? "Metadata only · updates are manual · Sound quality /10, not performance rating";
+                ?? updateMessage ?? saved.Warning ?? catalogWarning ?? columnLayoutWarning ?? "Metadata only · checks once at launch · Sound quality /10, not performance rating";
             footer.Text = "Snapshot " + catalog.snapshotDate + (lastCheckedUtc.HasValue ? "  ·  Last checked " + lastCheckedUtc.Value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) : "  ·  Never checked online") + "\r\n" + state;
         }
 
-        private async Task CheckForUpdates()
+        private async Task CheckForUpdates(bool startup)
         {
+            if (closing || IsDisposed || Disposing) return;
             if (updateCancellation != null)
             {
+                if (startup) return;
                 updateCancellation.Cancel(); update.Enabled = false; update.Text = "Canceling update…";
                 UpdateFooter("Canceling the check. Your current catalog remains available."); return;
             }
@@ -660,7 +787,9 @@ namespace ToolDriveOffline
             }
             catch (Exception)
             {
-                if (!closing && !IsDisposed && !Disposing) updateMessage = "The catalog update could not be completed. Your current catalog is unchanged. Check your connection and try again later.";
+                if (!closing && !IsDisposed && !Disposing) updateMessage = startup
+                    ? "Could not check for updates. Your saved catalog is ready to use offline; you can try again with Check for catalog updates."
+                    : "The catalog update could not be completed. Your current catalog is unchanged. Check your connection and try again later.";
             }
             finally
             {
@@ -675,7 +804,18 @@ namespace ToolDriveOffline
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             closing = true; if (updateCancellation != null) updateCancellation.Cancel(); searchTimer.Stop();
+            FlushColumnLayout();
             base.OnFormClosing(e); if (e.Cancel) closing = false;
+        }
+
+        protected override void OnDpiChanged(DpiChangedEventArgs e)
+        {
+            if (!columnsReady) { base.OnDpiChanged(e); return; }
+            Dictionary<string, int> widths = CaptureColumnWidths(Math.Max(1, e.DeviceDpiOld));
+            bool pendingSave = columnWidthsDirty; applyingColumnLayout = true; columnSaveTimer.Stop();
+            try { base.OnDpiChanged(e); ApplyColumnWidths(widths, Math.Max(1, e.DeviceDpiNew)); }
+            finally { applyingColumnLayout = false; }
+            if (pendingSave) columnSaveTimer.Start();
         }
         private void ToggleSaved(Show show) { saved.Toggle(show); RefreshResults(show.id); }
         private void OpenSelected() { ShowMatch item = Selected(); if (item != null) OpenShow(item.Show); }
