@@ -1,0 +1,130 @@
+TOOL DRIVE OFFLINE — macOS
+
+Requires macOS 11 or later. Supports Apple silicon and Intel Macs.
+Extract Tool.Drive.Offline.macOS.zip and move Tool Drive Offline.app to
+Applications or another writable folder, then open it.
+
+This development build is ad-hoc signed, not Apple-notarized. macOS may ask
+for approval before its first launch. A public release should be signed
+with the project's Apple Developer ID and notarized before distribution.
+
+THE ARCHIVE
+Use Theme in the toolbar to choose Front Row, Night Shift, Graphite
+or Laser Grid. Laser Grid features the green
+lasers from Philadelphia. If you last used a photo theme removed after
+version 1.5.0, the app opens in Laser Grid.
+Use Logo to choose Classic or 2006 across all themes.
+Use View > App Icon in the Mac menu bar to choose Classic or 2006 for
+the running app's Dock icon. Finder shows the Classic icon.
+In Front Row, use Picture to choose Blue Silhouette
+or Governors Ball. Your Mac remembers the theme, logo and picture choice.
+Front Row starts with Blue Silhouette. If you used Index Blue or Negative Space, this
+update opens in Front Row with your saved logo and Front Row picture.
+If you had a retired theme from 1.4.1, the catalog opens in Front Row.
+Use Updates in the toolbar for catalog and app update controls. Graphite
+shows the same controls above the results. All theme artwork works offline.
+
+The entire catalog is bundled. Search dates, venues, cities, tapers, gear,
+and songs. Combine sound rating, years, recording type, and status filters.
+Save a shortlist with the stars. Pick a show opens a random matching show.
+Recording details include sources, lineage, gear, sound ratings and setlists.
+Sound ratings measure recording quality, not performance quality.
+
+LIVE AUDIO AND PLAYER
+Open a show to see live actions for each available source. Stream plays the
+Tool Drive Project's published stream in the built-in player. The player has
+previous/next, play/pause, seeking and a full track list, and also works with
+the Mac's media controls. Open Tracklist and choose Bottom, Left, or Right.
+The list slides in from that edge and remembers its position. With Reduce
+Motion enabled in macOS, it opens and closes immediately. The offline
+catalog remains usable without a network.
+
+Save to Library downloads every stream track to a hidden staging folder and
+adds the recording only after the complete set is verified. Open download uses
+an isolated in-app Google Drive browser on macOS 11.3 or later. Original audio
+or ZIP downloads are checked before import. Removing a recording sends its
+folder to the Trash.
+
+The Library player supports FLAC, Apple Lossless, WAV, AIFF, MP3, AAC,
+M4A/MP4 and CAF audio. Files are kept in their original format; the app does
+not transcode lossless recordings. The public site stream is MP3, while the
+original download browser can preserve and import the published FLAC files.
+
+PLEX (OPTIONAL)
+Open Plex in the toolbar and sign in. Choose your server, then the music
+library that contains your archive. This Mac remembers the choice for each
+server. Search and Play from Plex use the selected library to match the exact
+show date and source version. It understands the archive layout
+YEAR/toolYYYY-MM-DD.vN/toolYYYY-MM-DD.vN.tNN.flac and also uses embedded Tool,
+album, date and track metadata. Plex credentials are kept in the macOS
+Keychain; tokens and media addresses are never exposed to the catalog page.
+Only authenticated Plex HTTPS connections are used; the app does not send a
+server token or audio over plaintext HTTP. Disconnect stops Plex playback and
+removes the saved Plex credentials from this Mac.
+
+Use Command-F to search. Command-C/V/A work normally in text fields.
+View > Zoom In / Zoom Out / Actual Size adjust the interface.
+Copy date and Copy “Tool YYYY-MM-DD” put text on the Mac clipboard for Plexamp.
+
+CATALOG UPDATES
+The saved catalog opens immediately; a background check runs once per launch.
+Check now repeats the check. Cancel stops an active request. Catalog refreshes
+download four public metadata snapshots from tooldriveproject.net, strip links,
+and validate the complete snapshot before writing it atomically. Live link and
+audio requests happen only for the player/download features described above. Incomplete,
+failed or canceled checks preserve the working catalog. Current filters,
+search and saved shows survive a successful refresh. Newly available metadata
+may take time to reach the source site's published snapshots.
+
+APP UPDATES
+The app checks this project's latest stable GitHub release at startup.
+A newer Tool.Drive.Offline.macOS.zip is downloaded and verified against
+GitHub's SHA-256 digest and size. The extracted app must have the correct
+bundle ID, version, executable and valid code signature. Developer ID-signed
+installations also require the same signing team on the candidate.
+
+Restart to update appears only when a verified package is ready. Clicking it
+copies the candidate next to the installed app, quits, replaces the bundle,
+and reopens it. A helper waits for the new app to finish loading its catalog.
+A launch failure or missing acknowledgement restores the previous bundle.
+The prior app is retained beside the installation as a hidden .previous app.
+Saved shows and catalog metadata live separately and are never replaced.
+The installation folder must be writable. Move an app launched through
+macOS App Translocation into Applications before updating it.
+
+A release containing only Windows/HTML assets cannot update the Mac app.
+Future releases need the Mac ZIP uploaded with the exact filename above and
+a GitHub-generated SHA-256 digest. Unpublished Mac packages are reported
+without changing the installed app. Release publishing is not part of this ZIP.
+
+LOCAL DATA
+~/Library/Application Support/Tool Drive Offline/
+  saved-shows.json       Personal shortlist
+  catalog-update.json    Validated catalog and last successful check time
+  Library/Sources/       Complete downloaded/imported recordings and manifests
+  Library/.staging/      Hidden temporary work; incomplete saves are discarded
+  AppUpdates/            Staged app packages and install.log
+Plex credentials are stored in the macOS Keychain, not in this folder.
+Window size is remembered through the normal macOS window preferences.
+If saved shows cannot be written, the app displays a notice and keeps
+changes for the session. A damaged catalog cache falls back to the bundle.
+
+BUILD FROM SOURCE
+Install Xcode or its Command Line Tools and Python 3.
+From the repository root:
+  bash "macOS App/build-app.sh"
+  bash "macOS App/test-app.sh"
+Optional live metadata and GitHub checks:
+  bash "macOS App/test-app.sh" --live
+
+The universal app and ZIP are written to macOS App/dist/.
+Building uses the existing catalog and requires no dependency downloads.
+Set MAC_SIGN_IDENTITY to your Developer ID certificate to sign the app.
+Before a release, update macOS App/VERSION to match the stable GitHub tag.
+For public distribution, notarize and staple the signed app, then recreate
+the ZIP with ditto -c -k --sequesterRsrc --keepParent and upload that ZIP.
+Apple Developer credentials and notarization are not included in this build.
+
+See NOTICE.md for metadata attribution. Independent of Tool, Tool Drive
+Project, setlist.fm, and Plex. Plex credentials and library data stay between
+this app and the Plex services and server you choose to connect.

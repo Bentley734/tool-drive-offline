@@ -1,0 +1,132 @@
+/* The same vector is reused at each size. Its fill follows the surface. */
+.brand-symbols { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+.tool-logo { display: block; height: auto; color: #fff; }
+.wordmark .tool-logo { width: 50px; }
+:root[data-theme="front-row"] .hero h1 .tool-logo { width: clamp(160px, 18.4vw, 240px); }
+:root[data-theme="night-shift"] .hero h1 .tool-logo {
+  display: inline-block;
+  width: clamp(75px, 8.3vw, 112px);
+  vertical-align: -.06em;
+}
+
+/* Keep the 2006 lettering legible at its wider original aspect ratio. */
+:root[data-logo="2006"] .wordmark .tool-logo { width: 80px; }
+:root[data-logo="2006"][data-theme="front-row"] .hero h1 .tool-logo { width: clamp(196px, 24vw, 324px); }
+:root[data-logo="2006"][data-theme="night-shift"] .hero h1 .tool-logo { width: clamp(110px, 12vw, 170px); }
+
+/* The graphite theme inherits the original catalog design. */
+.topbar-tools,
+.theme-picker {
+  display: flex;
+  align-items: center;
+}
+.topbar-tools { gap: 16px; }
+.theme-picker[hidden] { display: none; }
+.theme-picker { gap: 8px; color: var(--muted); font-size: 12px; }
+.theme-picker select {
+  color: var(--text);
+  min-width: 105px;
+  min-height: 32px;
+  font-weight: 550;
+  font-size: 12px;
+  padding: 5px 29px 5px 11px;
+  background-color: var(--panel);
+  border-color: var(--line);
+  border-radius: 7px;
+}
+
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.filters, .show-row, .update-card, dialog, .empty, .source-card) {
+  background: var(--panel);
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) .show-row:hover,
+:root:where([data-theme]:not([data-theme="graphite"])) .show-row:focus-within {
+  background: var(--raised);
+  border-color: var(--rim);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.date-cell, .venue, .version) { color: var(--text); }
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.location, .field-label, .field label, .copy-quick, .known-songs span) { color: var(--muted); }
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.year, .source-summary, .list-head, .update-status, .sound-value.unrated, .filter-note, .footer) { color: var(--faint); }
+:root:where([data-theme]:not([data-theme="graphite"])) .source-summary .taper::before { color: var(--faint); }
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.source-summary .type, .save-btn, .track-num) { color: var(--counter); }
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.sound-value:not(.unrated), .source-score, .eyebrow) { color: var(--amber); }
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.offline, .tag.match) {
+  color: var(--green);
+  background: var(--field);
+  border-color: var(--rim);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) :is(input, select, textarea, .search-wrap input, #theme-choice) {
+  color: var(--text);
+  background-color: var(--field);
+  border-color: var(--rim);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) .search-wrap:focus-within input {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--beam);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) :is(.update-icon, #saved-only[aria-pressed="true"], [data-save][aria-pressed="true"]) {
+  background: var(--accent-wash);
+  color: var(--amber);
+  border-color: var(--rim);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) .update-card button {
+  color: var(--text);
+  border-color: var(--rim);
+  background: var(--raised);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) :is(#random-show, .rating-chips .active, .primary, .update-card[data-ready="true"] button, .toast) {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--ink);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) :is(#random-show, .primary, .rating-chips .active, .update-card[data-ready="true"] button):hover:not(:disabled) {
+  background: var(--text);
+  color: var(--ink);
+  border-color: var(--text);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) .update-card[data-ready="true"] { border-color: var(--amber); }
+:root:where([data-theme]:not([data-theme="graphite"])) .dialog-top {
+  background: linear-gradient(105deg, var(--panel), var(--hero-color));
+  border-color: var(--line);
+}
+:root:where([data-theme]:not([data-theme="graphite"])) dialog::backdrop { background: rgba(4, 5, 10, .79); }
+:root:where([data-theme]:not([data-theme="graphite"])) .source-card { background: var(--raised); }
+:root:where([data-theme]:not([data-theme="graphite"])) .source-card.unmatched { background: var(--field); }
+:root:where([data-theme]:not([data-theme="graphite"])) .tag { border-color: var(--rim); }
+:root:where([data-theme]:not([data-theme="graphite"])) ::selection { background: var(--counter); color: var(--ink); }
+
+
+.theme-meta, .theme-catalog-heading { display:none; }
+:root:where([data-theme]:not([data-theme="graphite"])) .hero-art .orbit,
+:root:where([data-theme]:not([data-theme="graphite"])) .hero-art::after { display:none; }
+.theme-art { display:block; width:100%; height:100%; object-fit:cover; }
+#show-updates { font-size:12px; padding:6px 10px; }
+#updates-dialog { width:min(580px,92vw); }
+#updates-dialog .updates { grid-template-columns:1fr; padding:16px; margin:0; }
+#updates-dialog .dialog-top { display:flex; align-items:center; justify-content:space-between; }
+#show-updates[data-ready="true"] { border-color:var(--amber); color:var(--text); }
+@media(max-width:760px){.topbar-tools{gap:7px}.theme-picker{gap:6px}}
+@media(max-width:560px){.topbar{height:auto;min-height:64px;flex-wrap:wrap;padding:10px 0;gap:6px}.topbar-tools{flex-wrap:wrap}}
+
+
+#logo-choice { min-width: 83px; }
+@media (min-width: 601px) and (max-width: 980px) {
+  :root[data-theme] .topbar {
+    display: grid;
+    grid-template-columns: repeat(4, max-content) minmax(0, 1fr);
+    align-items: center;
+    justify-content: start;
+    gap: 6px 12px;
+    height: auto;
+    padding-block: 8px;
+  }
+  :root[data-theme] .topbar-tools { display: contents; }
+  :root[data-theme] .topbar .brand { grid-column: 1 / -2; grid-row: 1; }
+  :root[data-theme] .topbar .offline { grid-column: 1 / -1; grid-row: 1; justify-self: end; }
+  :root[data-theme] .topbar .theme-picker, :root[data-theme] #show-updates { grid-row: 2; justify-self: start; }
+}
+@media (max-width: 600px) {
+  :root[data-theme] .topbar { height: auto; flex-wrap: wrap; padding-block: 8px; gap: 5px; }
+  :root[data-theme] .topbar-tools { flex-wrap: wrap; gap: 5px 7px; }
+}

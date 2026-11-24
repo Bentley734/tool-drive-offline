@@ -1,8 +1,8 @@
 # Tool Drive Offline
 
-A native Windows show browser for finding a Tool recording to hear in your own Plexamp library. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
+A Windows and macOS show browser for finding a Tool recording. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
 
-The app works offline and contains metadata only: no audio files, players, streaming links, or download links. The Windows app checks for catalog updates and newer GitHub app releases in the background when it opens. You can cancel checks and choose when to restart into a downloaded app update. An optional single-file HTML version is also included.
+The catalog, themes, search, and saved shows work offline. The macOS app can optionally resolve current Tool Drive Project streams and original download folders, play audio, keep downloaded recordings in a private local Library, and connect to a user's own Plex server. The Windows and single-file HTML editions remain metadata-only. All editions can check for catalog updates without replacing the working offline snapshot when a request fails.
 
 ## Features
 
@@ -17,10 +17,40 @@ The app works offline and contains metadata only: no audio files, players, strea
 - Browse large result lists using virtual rows and cell values supplied as needed.
 - Download verified GitHub app updates and install them with **Restart to update**, without replacing the EXE by hand.
 - Use matching dark dropdowns, scrollbars, rating controls, checkboxes, and recording-detail tabs.
+- On macOS, stream available recordings through a native player with a queue, seeking, track selection, and system media controls.
+- Save a stream to the offline Library or import original audio from the in-app download browser; play FLAC, ALAC, WAV, AIFF, MP3, AAC, M4A/MP4, and CAF files without conversion.
+- Optionally connect a Plex account, select a personal server, and play an exact show/source match from that server without exposing the Plex token to the page.
 
 Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings reflect the bundled snapshot or your latest successful catalog update. Vote counts are unavailable.
 
 The default status, **On the drive**, limits results to recordings marked available in the source archive. Other statuses include confirmed, unconfirmed, and shows without a known recording. The header reports on-drive recordings separately from all documented shows; the bundled snapshot contains **1,342 on-drive recordings**, and this count refreshes with catalog updates. This status does not scan or describe your Plex library.
+
+## Run the macOS app
+
+The Mac app supports **macOS 11 or later on Apple silicon and Intel**. Download the Mac ZIP from [GitHub Releases](https://github.com/Bentley734/tool-drive-offline/releases/latest), extract it, and move `Tool Drive Offline.app` to Applications or another writable folder. The 1.7.0 Mac build uses an ad-hoc signature and has no Apple notarization ticket. macOS may ask for approval on first launch.
+
+The Mac version uses AppKit, the system WebKit engine, and AVFoundation. In addition to the offline catalog, it resolves current download availability when a show is opened and offers **Stream**, **Open download**, **Save to Library**, and optional **Play from Plex** actions. The native player supports queues, seeking, track selection, automatic track advance, retry handling, and macOS media keys. Local playback accepts FLAC, Apple Lossless, WAV, AIFF, MP3, AAC, M4A/MP4, and CAF audio.
+
+In the Mac menu bar, **View → App Icon** switches the running app’s Dock icon between Classic and 2006. The toolbar’s Logo picker controls the artwork inside the catalog. During playback, open **Tracklist** and use **Position** to place the list at the bottom, left, or right of the app window. Both preferences are saved on the Mac.
+
+**Save to Library** downloads the site's stream tracks into a hidden staging area and publishes the recording only after every track and its manifest are complete. **Open download** uses an isolated in-app Google Drive browser on macOS 11.3 or later; a downloaded audio file or ZIP is validated before its supported audio files are imported. Removing a Library recording moves it to the Trash. The original files are preserved and are not transcoded.
+
+Plex is optional. Connecting opens Plex's own sign-in page, discovers the user's accessible servers, and stores credentials in the macOS Keychain. Choose the music library containing the archive in the Plex panel. The app remembers the library for each server and uses it for search and **Play from Plex**. Show matching uses the exact `toolYYYY-MM-DD.vN` archive convention, embedded album/date metadata, and media-part folder paths so multiple source versions remain distinct. The token and playable URLs stay in native code and are never sent to the catalog page. Direct playback accepts only Plex's authenticated HTTPS connections; it never sends the server token or audio over plaintext HTTP. Playback depends on the selected Plex server being reachable and permitting access to the media.
+
+The app also checks catalog metadata and GitHub releases at startup, supports cancellation, caches validated metadata, and offers **Restart to update** after verifying a newer Mac package. Saved shows, downloaded audio, and filters survive catalog refreshes. Failed updates keep the current catalog; the restart helper restores the previous app if the new app cannot finish loading.
+
+Mac data lives in `~/Library/Application Support/Tool Drive Offline/`, with downloaded recordings under `Library/Sources/`; Plex credentials live separately in the macOS Keychain. The app needs no Python or separate web server at runtime.
+
+Build and check on a Mac with Xcode Command Line Tools and Python 3:
+
+```sh
+bash "macOS App/build-app.sh"
+bash "macOS App/test-app.sh"
+# Optional integration checks against the public metadata and GitHub:
+bash "macOS App/test-app.sh" --live
+```
+
+Builds appear in `macOS App/dist/`. For a notarized build, set `MAC_SIGN_IDENTITY` to a Developer ID Application identity, notarize the app, staple the ticket, and recreate the ZIP. Use the same version in `macOS App/VERSION` and the stable GitHub tag. Publish **Tool.Drive.Offline.macOS.zip** alongside the Windows assets. The Mac updater verifies GitHub’s SHA-256 asset digest. See `macOS App/READ ME.txt` for storage, build, update, and distribution details.
 
 ## Run the Windows app
 

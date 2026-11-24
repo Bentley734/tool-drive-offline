@@ -1,0 +1,259 @@
+/* Laser Grid surfaces */
+:root:where([data-theme="laser-grid"]) body {
+  color: var(--text);
+  background: var(--bg);
+}
+:root:where([data-theme="laser-grid"]) .hero {
+  isolation: isolate;
+}
+:root:where([data-theme="laser-grid"]) .hero-art {
+  display: block;
+  position: relative;
+  inset: auto;
+  opacity: 1;
+  transform: none;
+}
+:root:where([data-theme="laser-grid"]) .hero-copy > p:empty { display: none; }
+:root:where([data-theme="laser-grid"]) .theme-meta {
+  display: flex;
+  gap: .65em 1.4em;
+  align-items: baseline;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font: 12px/1.4 Menlo, Monaco, monospace;
+}
+:root:where([data-theme="laser-grid"]) .theme-total::after { content: " shows"; }
+:root:where([data-theme="laser-grid"]) .catalog-stats {
+  background: var(--panel);
+  border-color: var(--line);
+  box-shadow: none;
+}
+:root:where([data-theme="laser-grid"]) .stat span,
+:root:where([data-theme="laser-grid"]) .sound-label { color: var(--muted); }
+:root:where([data-theme="laser-grid"]) .brand-rule { background: var(--rim); }
+:root:where([data-theme="laser-grid"]) .hero-copy,
+:root:where([data-theme="laser-grid"]) .results { min-width: 0; }
+:root:where([data-theme="laser-grid"]) select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+}
+:root:where([data-theme="laser-grid"]) .search-wrap svg { stroke: var(--muted); }
+:root:where([data-theme="laser-grid"]) .source-info dt,
+:root:where([data-theme="laser-grid"]) .section-head span { color: var(--muted); }
+:root:where([data-theme="laser-grid"]) .detail-title { color: var(--text); }
+:root:where([data-theme="laser-grid"]) .update-icon {
+  color: var(--amber);
+  background: var(--accent-wash);
+}
+
+/* Laser Grid */
+:root[data-theme="laser-grid"] {
+  color-scheme: dark;
+  --bg: #071312;
+  --panel: #101f1c;
+  --raised: #193029;
+  --field: #0b1b18;
+  --line: #315048;
+  --rim: #608679;
+  --text: #eef8f0;
+  --muted: #c0d2ca;
+  --faint: #9cb5aa;
+  --amber: #9bffbd;
+  --green: #89e9ba;
+  --ink: #092016;
+  --counter: #afe8c9;
+  --accent-wash: #183a2b;
+  --beam: #315e46;
+  --hero-color: #102821;
+  --ambient: transparent;
+  --radius: 2px;
+  --grid-mono: Menlo, Monaco, monospace;
+}
+:root[data-theme="laser-grid"] body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Helvetica Neue", sans-serif;
+}
+:root[data-theme="laser-grid"] .shell { padding-inline: clamp(15px, 2.6vw, 46px); }
+:root[data-theme="laser-grid"] .topbar {
+  min-height: 49px;
+  height: auto;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+:root[data-theme="laser-grid"] .brand-label { color: var(--counter); font-family: var(--grid-mono); }
+:root[data-theme="laser-grid"] .hero {
+  display: flex;
+  align-items: center;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: clamp(178px, 18vw, 262px);
+  margin-top: 14px;
+  padding: clamp(16px, 2.4vw, 38px);
+  border: 1px solid var(--line);
+  border-top: 2px solid #9bffbd;
+  border-radius: 0;
+  background-color: #0a1c18;
+  background-image:
+    radial-gradient(ellipse at 15% 100%, #3b5f3e42, transparent 37%),
+    linear-gradient(90deg, #75947a1a 1px, transparent 1px),
+    linear-gradient(#75947a1a 1px, transparent 1px);
+  background-size: auto, 31px 31px, 31px 31px;
+}
+:root[data-theme="laser-grid"] .hero-copy { position: relative; z-index: 1; max-width: 47%; }
+:root[data-theme="laser-grid"] .hero-copy .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: var(--amber);
+  font: 600 10px/1.3 var(--grid-mono);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+:root[data-theme="laser-grid"] .hero-copy .eyebrow::before {
+  content: "";
+  width: 13px;
+  height: 7px;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px);
+}
+:root[data-theme="laser-grid"] .hero h1 {
+  margin: 0;
+  color: #f1fff1;
+  font: 820 clamp(42px, 5.7vw, 88px)/.98 "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -.073em;
+}
+:root[data-theme="laser-grid"] .hero-art {
+  display: block;
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 63%;
+  height: 100%;
+  opacity: 1;
+  transform: none;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000b, #000 26%);
+  mask-image: linear-gradient(90deg, #000b, #000 26%);
+}
+:root[data-theme="laser-grid"] .hero-art .theme-art { object-fit: cover; object-position: 56% 82%; }
+:root[data-theme="laser-grid"] .hero-copy > p:last-child:empty { display: none; }
+:root[data-theme="laser-grid"] .theme-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 12px;
+  margin-top: 17px;
+  color: var(--muted);
+  font: 550 11px/1.3 var(--grid-mono);
+}
+:root[data-theme="laser-grid"] .theme-total { color: var(--counter); }
+:root[data-theme="laser-grid"] .theme-total::after { content: " shows"; }
+:root[data-theme="laser-grid"] .theme-years { border-left: 1px solid var(--rim); padding-left: 12px; }
+:root[data-theme="laser-grid"] .catalog-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 5px 20px;
+  margin: 0;
+  padding: 7px 12px;
+  background: #11251f;
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-theme="laser-grid"] .stat {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+:root[data-theme="laser-grid"] .catalog-stats :is(.stat:first-child, .stat:last-child) { display: none; }
+:root[data-theme="laser-grid"] .stat strong { font: 650 12px var(--grid-mono); color: var(--counter); }
+:root[data-theme="laser-grid"] .stat span { margin: 0; font: 11px var(--grid-mono); color: var(--muted); letter-spacing: 0; text-transform: none; }
+
+:root[data-theme="laser-grid"] .workspace {
+  grid-template-columns: clamp(184px, 18vw, 246px) minmax(0, 1fr);
+  gap: clamp(12px, 1.5vw, 24px);
+  margin-top: 18px;
+}
+:root[data-theme="laser-grid"] .filters {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--rim);
+  box-shadow: none;
+}
+:root[data-theme="laser-grid"] .filter-heading { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+:root[data-theme="laser-grid"] .filter-heading h2,
+:root[data-theme="laser-grid"] .field-label,
+:root[data-theme="laser-grid"] .field label:not(.visually-hidden) { font: 600 11px/1.35 var(--grid-mono); letter-spacing: .02em; }
+:root[data-theme="laser-grid"] .filter-heading h2 { text-transform: uppercase; color: var(--counter); letter-spacing: .1em; }
+:root[data-theme="laser-grid"] :is(button, select, input, textarea) { border-radius: 2px; }
+:root[data-theme="laser-grid"] .search-wrap input { height: 41px; font-family: var(--grid-mono); font-size: 12px; }
+:root[data-theme="laser-grid"] .results-toolbar { margin-bottom: 10px; }
+:root[data-theme="laser-grid"] .toolbar-actions #random-show { font-weight: 720; }
+:root[data-theme="laser-grid"] .results-toolbar .result-count { color: var(--muted); }
+:root[data-theme="laser-grid"] .result-count strong { color: var(--amber); font-family: var(--grid-mono); }
+:root[data-theme="laser-grid"] .list-head,
+:root[data-theme="laser-grid"] .show-row {
+  display: grid;
+  grid-template-columns: clamp(83px, 9vw, 128px) minmax(0, 1fr) 65px 106px;
+  gap: 10px;
+  align-items: center;
+  padding-inline: 12px;
+}
+:root[data-theme="laser-grid"] .list-head {
+  padding-block: 7px;
+  border: 1px solid var(--line);
+  background: #183027;
+  color: var(--counter);
+  font: 10px/1.35 var(--grid-mono);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+:root[data-theme="laser-grid"] .show-row {
+  margin: 0;
+  padding-block: 10px;
+  border: 0;
+  border-inline: 1px solid var(--line);
+  border-bottom: 1px solid #294238;
+  border-radius: 0;
+  background: #101e1a;
+}
+:root[data-theme="laser-grid"] .show-row:nth-child(even) { background: #0b1917; }
+:root[data-theme="laser-grid"] .show-row:hover,
+:root[data-theme="laser-grid"] .show-row:focus-within { background: var(--raised); box-shadow: inset 2px 0 var(--amber); }
+:root[data-theme="laser-grid"] .date-cell { color: var(--counter); font: 550 12px/1.3 var(--grid-mono); }
+:root[data-theme="laser-grid"] .venue { color: var(--text); font: 650 clamp(16px, 1.36vw, 23px)/1.16 -apple-system, sans-serif; letter-spacing: -.025em; }
+:root[data-theme="laser-grid"] .sound-value { font: 650 clamp(18px, 1.8vw, 28px)/1 var(--grid-mono); letter-spacing: -.065em; }
+:root[data-theme="laser-grid"] .row-actions { grid-column: auto; }
+:root[data-theme="laser-grid"] .list-head span:last-child { display: block; }
+:root[data-theme="laser-grid"] .dialog-top { border-top: 2px solid var(--amber); }
+:root[data-theme="laser-grid"] .detail-title { letter-spacing: -.045em; }
+:root[data-theme="laser-grid"] .section-head h2 { font-family: var(--grid-mono); }
+
+@media (max-width: 800px) {
+  :root[data-theme="laser-grid"] .workspace { display: block; }
+  :root[data-theme="laser-grid"] .hero { min-height: 151px; margin-top: 9px; }
+  :root[data-theme="laser-grid"] .mobile-filter-toggle { display: block; margin-bottom: 9px; }
+  :root[data-theme="laser-grid"] .filters { display: none; position: static; }
+  :root[data-theme="laser-grid"] .filters.mobile-open { display: block; }
+  :root[data-theme="laser-grid"] .show-row .date-cell,
+  :root[data-theme="laser-grid"] .show-cell { grid-column: auto; }
+}
+@media (max-width: 560px) {
+  :root[data-theme="laser-grid"] .hero { padding: 13px; min-height: 141px; }
+  :root[data-theme="laser-grid"] .hero-copy { max-width: 65%; }
+  :root[data-theme="laser-grid"] .hero-art { width: 48%; }
+  :root[data-theme="laser-grid"] .hero h1 { font-size: clamp(30px, 8vw, 43px); }
+  :root[data-theme="laser-grid"] .theme-meta { gap: 4px 7px; }
+  :root[data-theme="laser-grid"] .show-row { grid-template-columns: minmax(0, 1fr) 70px; gap: 5px 8px; }
+  :root[data-theme="laser-grid"] .show-row .date-cell,
+  :root[data-theme="laser-grid"] .show-row .row-actions { grid-column: 1 / -1; }
+  :root[data-theme="laser-grid"] .list-head { display: none; }
+}
