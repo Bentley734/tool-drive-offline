@@ -2,7 +2,12 @@ param([string]$ExecutablePath)
 
 $ErrorActionPreference = 'Stop'
 $projectDir = $PSScriptRoot
-if (-not $ExecutablePath) { $ExecutablePath = Join-Path $projectDir 'dist/Tool Drive Offline.exe' }
+if (-not $ExecutablePath) {
+    $ExecutablePath = Join-Path $projectDir 'tests/release-candidate/Tool Drive Offline.exe'
+    $fingerprint = (Get-FileHash -Algorithm SHA256 -LiteralPath $ExecutablePath).Hash.ToLowerInvariant()
+    if ($fingerprint -ne '75a97004d17e2c4c310f41e39100dc44baca4c22cf9b3eb71ceb4fbab2e9d9a4') { throw 'The release candidate digest changed.' }
+    Write-Host "Testing the packaged 2.0.0 Windows executable (SHA256 $fingerprint)"
+}
 $ExecutablePath = (Resolve-Path -LiteralPath $ExecutablePath).Path
 $compilerPath = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 if (-not (Test-Path -LiteralPath $compilerPath)) {
