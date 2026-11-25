@@ -17,7 +17,7 @@ namespace ToolDriveOffline
         public static IList<string> AllowedNames { get { return Array.AsReadOnly(Names); } }
         public static string FilePath
         {
-            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tool Drive Offline", "column-layout.json"); }
+            get { return Path.Combine(DesktopBootstrap.Profile, "column-layout.json"); }
         }
 
         public static Dictionary<string, int> Load(out string warning)

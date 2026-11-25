@@ -1,0 +1,222 @@
+.topbar-status { display: contents; }
+.glass-choice[hidden] { display: none; }
+:root[data-glass-capable] .topbar-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 3px;
+}
+.glass-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 22px;
+  color: var(--text);
+  font: 11px/1.2 -apple-system, BlinkMacSystemFont, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.glass-choice input {
+  appearance: auto;
+  width: 25px;
+  min-width: 0;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--amber);
+}
+@media (min-width: 601px) and (max-width: 980px) {
+  :root[data-glass-capable] .topbar-status {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: end;
+  }
+}
+@media (min-width: 981px) and (max-width: 1280px), (max-width: 600px) {
+  :root[data-glass-capable] .topbar { height: auto; min-height: 60px; flex-wrap: wrap; }
+  :root[data-glass-capable] .topbar-tools { max-width: 100%; flex-wrap: wrap; }
+}
+
+:root[data-liquid-glass="true"] {
+  --glass-heading-height: max(54px, calc(var(--mac-glass-point, 1px) * 64));
+  --glass-slot-width: calc(var(--mac-glass-point, 1px) * 322);
+  --glass-fill: color-mix(in srgb, var(--panel) 83%, transparent);
+  --glass-solid: var(--panel);
+  --glass-edge: color-mix(in srgb, var(--text) 24%, var(--line));
+  --glass-line: color-mix(in srgb, var(--text) 13%, transparent);
+  --glass-highlight: color-mix(in srgb, var(--text) 13%, transparent);
+  --glass-tint: color-mix(in srgb, var(--amber) 9%, transparent);
+  --glass-brand-width: min(280px, calc(100% - var(--glass-slot-width)));
+  --glass-brand-mask: linear-gradient(to right, black 65%, transparent);
+  --glass-shine: linear-gradient(155deg, var(--glass-highlight), transparent 29%, transparent 72%, var(--glass-tint));
+  --glass-shadow: inset 0 1px 0 var(--glass-highlight), 0 8px 28px #0005;
+  --glass-blur: blur(19px) saturate(1.26);
+  scroll-padding-top: calc(var(--glass-heading-height) + 10px);
+}
+/* Reserve actual AppKit points through page zoom. The tracklist measures this
+   same header for its sidebar inset, including while the catalog is scrolled. */
+:root[data-native-glass="true"][data-liquid-glass="true"][data-theme] .topbar {
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 24;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  height: auto;
+  min-height: var(--glass-heading-height);
+  padding: 6px var(--glass-slot-width) 6px 0;
+  border: 0;
+  pointer-events: none;
+  background: transparent;
+}
+/* Only the web lettering needs its own backing. Scrolling artwork reaches the
+   actual AppKit glass on the right, without an intervening frosted web layer. */
+:root[data-native-glass="true"][data-liquid-glass="true"] .topbar::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 auto 0 0;
+  width: var(--glass-brand-width);
+  background: var(--glass-shine), var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  -webkit-mask-image: var(--glass-brand-mask);
+  mask-image: var(--glass-brand-mask);
+}
+:root[data-native-glass="true"][data-liquid-glass="true"][data-theme] .topbar-tools { display: none; }
+:root[data-native-glass="true"][data-liquid-glass="true"] .topbar .brand { min-width: 0; max-width: 100%; gap: clamp(6px, 1vw, 14px); }
+:root[data-native-glass="true"][data-liquid-glass="true"] .topbar .wordmark { flex: 0 0 auto; }
+:root[data-native-glass="true"][data-liquid-glass="true"] .brand-label { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 560px) {
+  :root[data-native-glass="true"][data-liquid-glass="true"] .topbar :is(.brand-label, .brand-rule) { display: none; }
+}
+:root[data-native-glass="true"][data-liquid-glass="true"] .filters { top: calc(var(--glass-heading-height) + 12px); }
+
+:root[data-liquid-glass="true"] :is(#mac-eq-panel, .visualizer-toolbar),
+:root[data-liquid-glass="true"] body[data-tracklist-side] .mac-tracklist-panel,
+:root[data-liquid-glass="true"] dialog .dialog-top {
+  border-color: var(--glass-edge);
+  background: var(--glass-shine), var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+:root[data-liquid-glass="true"] .mac-player {
+  /* A backdrop filter on this fixed parent would rebase the fixed side queue. */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  isolation: isolate;
+  background: transparent;
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+}
+:root[data-liquid-glass="true"] .mac-player::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: var(--glass-shine), var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+:root[data-liquid-glass="true"] .mac-player-tracks { background: transparent; }
+:root[data-liquid-glass="true"] .mac-tracklist-heading { border-bottom: 1px solid var(--glass-line); }
+:root[data-liquid-glass="true"] .mac-player-tracks button.active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--amber) 13%, var(--panel));
+  box-shadow: inset 2px 0 var(--amber);
+}
+:root[data-liquid-glass="true"] #mac-eq-panel { border-radius: 19px; }
+:root[data-liquid-glass="true"] dialog { border-radius: 17px; border-color: var(--glass-edge); }
+:root[data-liquid-glass="true"] .visualizer-toolbar {
+  border: 1px solid var(--glass-edge);
+  border-radius: 19px;
+  padding: 5px 7px;
+  width: fit-content;
+  max-width: calc(100% - 28px);
+  right: auto;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: var(--text);
+}
+:root[data-liquid-glass="true"] .visualizer-toolbar label { margin-inline: 5px; text-shadow: none; }
+:root[data-liquid-glass="true"] :is(.mac-player-tools, .mac-player-controls, .mac-eq-presets, .visualizer-toolbar, .dialog-top) button,
+:root[data-liquid-glass="true"] #mac-eq-magik,
+:root[data-liquid-glass="true"] :is(.mac-tracklist-heading, .visualizer-toolbar) select {
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--text) 8%, var(--glass-solid));
+  color: var(--text);
+}
+:root[data-liquid-glass="true"] :is(.mac-player-controls, .mac-player-tools, .visualizer-toolbar, .dialog-top) button:hover:not(:disabled) {
+  border-color: var(--glass-edge);
+  background-color: color-mix(in srgb, var(--text) 16%, var(--glass-solid));
+}
+:root[data-liquid-glass="true"] #mac-player-toggle,
+:root[data-liquid-glass="true"] #mac-eq-panel button[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--amber);
+  border-color: var(--amber);
+}
+:root[data-liquid-glass="true"] :is(.mac-player, #mac-eq-panel, .visualizer-toolbar, .dialog-top) :focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root[data-liquid-glass="true"] {
+    --glass-fill: var(--glass-solid);
+    --glass-shine: none;
+    --glass-blur: none;
+    --glass-edge: var(--muted);
+    --glass-line: var(--muted);
+    --glass-shadow: none;
+    --glass-brand-width: 100%;
+    --glass-brand-mask: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-liquid-glass="true"] :is(.topbar, .glass-choice, .mac-player, #mac-eq-panel, .visualizer-toolbar) {
+    transition: none;
+  }
+}
+:root[data-liquid-glass="true"]:is([data-glass-reduce-transparency="true"], [data-glass-increase-contrast="true"]) {
+  --glass-fill: var(--glass-solid);
+  --glass-shine: none;
+  --glass-blur: none;
+  --glass-edge: var(--muted);
+  --glass-line: var(--muted);
+  --glass-shadow: none;
+  --glass-brand-width: 100%;
+  --glass-brand-mask: none;
+}
+
+/* Earlier macOS versions keep the same actions in the catalog toolbar. */
+:root[data-native-glass="false"][data-liquid-glass="true"][data-theme] .topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  height: auto;
+  padding: 10px 14px;
+  background: rgba(15, 22, 38, .88);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+:root[data-native-glass="false"][data-liquid-glass="true"] .topbar::before { display: none; }
+:root[data-native-glass="false"][data-liquid-glass="true"][data-theme] .topbar-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+:root[data-native-glass="false"][data-glass-reduce-transparency="true"] .topbar {
+  background-color: var(--panel);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

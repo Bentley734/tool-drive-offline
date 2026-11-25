@@ -38,7 +38,7 @@ namespace ToolDriveOffline
         private static readonly Regex TagPattern = new Regex(@"^v?(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?$", RegexOptions.CultureInvariant);
         private static readonly Regex HashPattern = new Regex(@"^[0-9a-fA-F]{64}$", RegexOptions.CultureInvariant);
         public static Version CurrentVersion { get { return Normalize(Assembly.GetExecutingAssembly().GetName().Version); } }
-        private static string StagingRoot { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tool Drive Offline", "AppUpdates"); } }
+        private static string StagingRoot { get { return Path.Combine(DesktopBootstrap.Profile, "AppUpdates"); } }
 
         public static Task<AppRelease> CheckAsync(CancellationToken token)
         {
@@ -113,7 +113,7 @@ namespace ToolDriveOffline
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = Timeout.InfiniteTimeSpan;
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("ToolDriveOffline/1.3 AppUpdate");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("ToolDriveOffline/" + CurrentVersion.ToString(3) + " AppUpdate");
                     Uri address = new Uri(release.AssetUrl);
                     bool downloaded = false;
                     using (CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(token))
@@ -376,7 +376,7 @@ namespace ToolDriveOffline
             using (HttpRequestMessage request = Request(address, true))
             {
                 client.Timeout = Timeout.InfiniteTimeSpan;
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("ToolDriveOffline/1.3 AppUpdate");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("ToolDriveOffline/" + CurrentVersion.ToString(3) + " AppUpdate");
                 timeout.CancelAfter(TimeSpan.FromSeconds(30));
                 using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false))
                 using (timeout.Token.Register(delegate { response.Dispose(); }))

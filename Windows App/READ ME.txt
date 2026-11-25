@@ -1,101 +1,74 @@
-TOOL DRIVE OFFLINE - WINDOWS APP
+TOOL DRIVE OFFLINE 2.0 FOR WINDOWS
 
-Double-click Tool Drive Offline.exe to open the app.
-No installation, administrator rights, browser, or local server is needed.
-The entire show catalog is embedded in the executable. You can move the EXE
-to any folder, or pin it using Windows' normal taskbar/Start controls.
+Open Tool.Drive.Offline.exe on Windows 10 or 11. The app uses .NET Framework
+4.8 and the Microsoft Edge WebView2 Runtime. If the runtime is missing,
+install the Evergreen Runtime from Microsoft and reopen the app:
+https://developer.microsoft.com/microsoft-edge/webview2/
 
-This app uses .NET Framework 4.8, which is already installed on this PC.
-Another computer must also have .NET Framework 4.8 or later installed.
+The EXE includes 1,299 shows, all theme artwork, and the catalog captured on
+November 21, 2026. Browse, search and bookmark without an internet connection.
+Choose an available recording and select Stream to play its published audio.
+
+APPEARANCE
+New installations start in Liquid Glass. Open Appearance to choose Liquid
+Glass, Front Row, Night Shift, Graphite, or Laser Grid. In Liquid Glass you
+can pick any of nine concert photos. Wallpaper > Shuffle changes the photo
+on launch. Front Row remembers its own picture. Choose a Classic or 2006
+logo, the running window's icon, zoom level, and a card or resizable column
+layout. The EXE and its shortcuts use the multicolor TOOL icon.
 
 FIND A SHOW
-Search for a date, venue, city, taper, or song. Filter by sound rating,
-recording type, year, and source status. Open a show for its recording
-versions, lineage notes, and setlist. Copy its date and search in Plexamp
-for your own recording. The app does not connect to Plex or inspect your
-music library.
+Press Ctrl+F to search by date, venue, location, taper, equipment or song.
+Combine sound rating, years, source status and recording type. The rating
+is the best recording quality among sources meeting your filters. Pick a
+show opens a random result. The star saves a show for later. Open a show to
+see source details, lineage, setlists and streaming or Library actions.
 
-All ratings measure recording SOUND QUALITY out of 10. The score shown for
-a show is the highest rating among sources matching ALL your filters.
-Unrated recordings are not zero-rated. Vote counts are unavailable.
+PLAYER AND LIBRARY
+Use the player to select a track, seek, pause, or skip. Tracklist can open
+from the left, right or bottom. Open Visualizer for Ember Bloom, Tidal Glass,
+Prism Veil or Infinite Filigree. The visualizer responds to the audio and
+supports full screen. EQ offers Bass Boost, Vocal, Bright, custom bass/mid/
+treble, and the eight-filter Magik setting. Flat clears the effects.
 
-The default status is OTD (on the project's drive). Confirmed means a
-recording exists but the project has not acquired it; Unconfirmed means
-believed to exist; Unknown means no known recording. These labels do not
-describe what is in your Plex library.
+Save to Library downloads a complete recording for offline playback. Open
+download opens an isolated Google Drive window for published originals.
+Select a supported download to import it. You can also import audio files
+or a ZIP from a recording's source, or use Import audio in Library. The
+Library keeps the original files. A bundled decoder handles supported
+lossless and PCM formats when the browser needs a different playback format. Completed recordings appear together;
+canceling a partial download leaves existing recordings available.
 
-OFFLINE DATA
-1,299 shows from the Tool Drive Project's public metadata, downloaded
-November 21, 2026. Setlists originate from setlist.fm and may be partial.
-This is an independent personal offline browser. The bundled data remains
-available until you request a successful catalog update. No audio was
-downloaded or bundled, and there are no streaming or download links.
+PLEX
+Open Plex, choose Connect, and complete sign-in in your browser. Select a
+server and a music library, then open a recording and search or play its Plex
+match. Matching uses the concert date and recording version. Plex credentials
+are protected using Windows data protection under your account. Disconnect
+in Plex to remove the saved credential. Plex audio requires connectivity
+to the selected server.
 
-CHECK FOR CATALOG UPDATES
-The app displays the saved catalog immediately, then automatically checks
-for updates once each time you open it. You can keep browsing during the
-check. Use Check for catalog updates to check again later. The app requests only four public metadata files from
-Tool Drive Project. It reports new shows, recordings, ratings, and other
-changed metadata, then stores a validated copy for later offline use.
-Cancel update stops an active check. A failed or canceled check keeps the
-working catalog. Your search, filters, and saved shows are preserved.
+UPGRADES AND STORAGE
+Your 1.x bookmarks, catalog cache, and saved column widths carry over. The
+app stores them in %LOCALAPPDATA%\Tool Drive Offline along with the Library,
+Plex settings, and the private web profile that remembers Appearance.
 
-If you are offline, the saved catalog remains usable. Recent changes may
-take time to reach the site's published metadata files. Last checked shows when
-your check succeeded; it is not the edit date of every recording.
-The catalog control updates data; app EXE updates are handled separately.
+Updates has separate controls for catalog metadata and the Windows app.
+A catalog refresh validates all four metadata snapshots before replacing
+the working cache. The app updater verifies the repository, release version,
+SHA-256 digest, size and executable identity. Choose Restart to update when
+ready. Updating requires write access to the executable's folder.
 
-Updated metadata is cached separately at:
-%LOCALAPPDATA%\Tool Drive Offline\catalog-update.json
-If that cache cannot be loaded, the embedded catalog remains available.
+BUILD FROM SOURCE
+Run Windows App\build-app.ps1 with Python 3.9+ and .NET Framework installed.
+The first source build verifies Microsoft's pinned WebView2 SDK from NuGet.
+The standalone source ZIP includes the pinned SDK under Dependencies. You
+can also pass -WebView2Package to use a previously downloaded SDK file. The Windows
+source package includes the standalone catalog, shared desktop assets and
+rebuildable Windows components. Run Windows App\test-app.ps1 after building.
 
-APP UPDATES FROM GITHUB
-The app checks for newer stable GitHub releases when it opens. If there is
-one, it downloads the Windows EXE in the background and verifies the file's
-SHA-256 digest, size, app identity, and version.
+The Windows release ZIP includes notices for Microsoft WebView2 and FFmpeg.
+The corresponding decoder sources and build script are in the Windows
+source ZIP under Windows App\Codecs.
 
-Click Restart to update when you are ready. The app closes, replaces its
-EXE, and starts the new version. You do not need to download or replace the
-file by hand. Check app updates can check again or cancel an active check.
-If you are offline, the current app and catalog remain usable.
-
-Saved shows, cached metadata, and column widths remain in your Windows
-profile. The helper keeps or restores the old EXE if replacement or restart
-fails. The EXE folder must be writable, and other copies using the same EXE
-must be closed. No administrator access or login is requested.
-
-Temporary app-update files are stored under:
-%LOCALAPPDATA%\Tool Drive Offline\AppUpdates
-
-Versions before 1.3.0 need this updater-enabled EXE installed once. Later
-versions can update themselves using Restart to update.
-
-SAVED SHOWS
-Saved show IDs are stored in:
-%LOCALAPPDATA%\Tool Drive Offline\saved-shows.json
-They remain saved when you move or replace the EXE on the same Windows
-account. This list is separate from the earlier HTML browser's saved list.
-If the app cannot save the file, it reports that the list is session-only.
-
-COLUMN WIDTHS AND LARGE LISTS
-Drag column header edges to resize the columns. Widths are saved after a
-short pause and when the app closes normally, and restored next time.
-Settings are stored separately at:
-%LOCALAPPDATA%\Tool Drive Offline\column-layout.json
-All columns remain available through horizontal scrolling when needed.
-Large lists use virtual rows and create display values as needed instead
-of rebuilding every cell after a filter changes.
-
-MATCHING DARK CONTROLS
-Dropdowns, scrollbars, rating controls, checkboxes, and recording-detail
-tabs share the app's graphite and amber theme. Drag scrollbar thumbs or
-use the mouse wheel; Shift+wheel scrolls the show list horizontally.
-Dropdowns support arrow keys and typing to find an item. F4 or Alt+Down
-opens a dropdown, Enter chooses an item, and Escape cancels the choice.
-Type a minimum rating and press Tab, or use the minus/plus controls.
-Ctrl+Tab switches between recording sources and setlist details.
-
-SOURCE AND REBUILD
-The project folder contains the C# source, icon, manifest, and build-app.ps1.
-Run build-app.ps1 in PowerShell to rebuild using the installed .NET Framework
-compiler. It embeds the existing ../catalog.json; building needs no network.
+Independent of Tool, Tool Drive Project, Plex and setlist.fm. See NOTICE.md
+in the source package for catalog attribution.

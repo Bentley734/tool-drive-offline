@@ -298,7 +298,7 @@ namespace ToolDriveOffline
         private readonly string path;
         public SavedStore(IEnumerable<Show> shows)
         {
-            path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tool Drive Offline", "saved-shows.json");
+            path = Path.Combine(DesktopBootstrap.Profile, "saved-shows.json");
             try
             {
                 if (File.Exists(path))
@@ -319,6 +319,10 @@ namespace ToolDriveOffline
         {
             string key = show.id.ToString(CultureInfo.InvariantCulture);
             if (!Ids.Remove(key)) Ids.Add(key);
+            Persist();
+        }
+        internal void Persist()
+        {
             string temp = null;
             try
             {
@@ -1043,8 +1047,19 @@ namespace ToolDriveOffline
             Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
             try
             {
-                string warning; Catalog catalog = CatalogCache.Load(out warning);
-                Application.Run(new MainForm(catalog, warning));
+                string name = @"Local\ToolDriveOffline." + System.Security.Principal.WindowsIdentity.GetCurrent().User.Value + "." + DesktopBootstrap.ProfileKey;
+                bool primary;
+                using (Mutex instance = new Mutex(true, name, out primary))
+                using (EventWaitHandle activate = new EventWaitHandle(false, EventResetMode.AutoReset, name + ".Activate"))
+                {
+                    if (!primary) { activate.Set(); return; }
+                    try
+                    {
+                        string warning; Catalog catalog = CatalogCache.Load(out warning);
+                        DesktopBootstrap.Run(catalog, warning, activate);
+                    }
+                    finally { instance.ReleaseMutex(); }
+                }
             }
             catch (Exception error) { MessageBox.Show("Tool Drive Offline could not start.\r\n\r\n" + error.Message, "Tool Drive Offline", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }

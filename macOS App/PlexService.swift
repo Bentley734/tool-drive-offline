@@ -1227,9 +1227,14 @@ final class PlexService {
         request.setValue("Tool Drive Offline", forHTTPHeaderField: "X-Plex-Product")
         request.setValue(version, forHTTPHeaderField: "X-Plex-Version")
         request.setValue(clientIdentifier, forHTTPHeaderField: "X-Plex-Client-Identifier")
-        request.setValue("macOS", forHTTPHeaderField: "X-Plex-Device")
+        #if os(iOS)
+        let platform = "iOS"
+        #else
+        let platform = "macOS"
+        #endif
+        request.setValue(platform, forHTTPHeaderField: "X-Plex-Device")
         request.setValue("Tool Drive Offline", forHTTPHeaderField: "X-Plex-Device-Name")
-        request.setValue("macOS", forHTTPHeaderField: "X-Plex-Platform")
+        request.setValue(platform, forHTTPHeaderField: "X-Plex-Platform")
         request.setValue(ProcessInfo.processInfo.operatingSystemVersionString, forHTTPHeaderField: "X-Plex-Platform-Version")
         if let token = token { request.setValue(token, forHTTPHeaderField: "X-Plex-Token") }
     }

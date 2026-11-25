@@ -1,5 +1,7 @@
 (() => {
   const themePicker = document.getElementById('theme-choice');
+  const glassThemeOption = document.getElementById('glass-theme-option')?.content.firstElementChild;
+  const wallpaperPicker = document.getElementById('glass-wallpaper-picker');
   const picturePicker = document.getElementById('picture-choice');
   const pictureControl = document.getElementById('picture-picker');
   const logoPicker = document.getElementById('logo-choice');
@@ -14,6 +16,7 @@
   const graphiteCopy = [eyebrow.textContent, heading.textContent, subtitle.innerHTML];
   const copy = {
     'front-row': ['Live recordings', 'TOOL', 'The live archive'],
+    'liquid-glass': ['Live recordings', 'TOOL', 'The live archive'],
     'night-shift': ['Live recording index', 'TOOL DRIVE', ''],
     graphite: graphiteCopy,
     'laser-grid': ['Live recordings', 'Signal index', '']
@@ -24,8 +27,16 @@
   const workspace = document.querySelector('.workspace');
   const updateDialog = document.getElementById('updates-dialog');
   const updateButton = document.getElementById('show-updates');
-  updateButton.onclick = () => updateDialog.showModal();
+  updateButton.onclick = () => {
+    if (updateDialog.open) return;
+    if (themePicker.value === 'graphite') updateDialog.append(updates);
+    updateDialog.showModal();
+    document.getElementById('close-updates').focus?.();
+  };
   document.getElementById('close-updates').onclick = () => updateDialog.close();
+  updateDialog.onclose = () => {
+    if (themePicker.value === 'graphite') workspace.before(updates);
+  };
 
   window.refreshMacTheme = () => {
     total.textContent = document.getElementById('total-shows').textContent;
@@ -35,6 +46,24 @@
 
   function availableValue(picker, id) {
     return Array.from(picker.options).some(option => option.value === id) ? id : picker.options[0].value;
+  }
+
+  function wallpaperPhoto(id) {
+    const value = availableValue(wallpaperPicker, id);
+    return value === 'shuffle' ? wallpaperPicker.options[0].value : value;
+  }
+
+  let wallpaper = wallpaperPicker ? wallpaperPhoto(window.toolMac.wallpaper) : undefined;
+  let wallpaperChoice = window.toolMac.wallpaperChoice === 'shuffle' ? 'shuffle' : wallpaper;
+  function updateWallpaper(theme) {
+    if (!wallpaperPicker) return;
+    wallpaperPicker.value = wallpaperChoice;
+    const selector = document.getElementById('glass-wallpaper-control');
+    if (selector) selector.hidden = theme !== 'liquid-glass' || window.toolMac.nativeGlassToolbar !== false;
+    window.toolMac.wallpaper = wallpaper;
+    window.toolMac.wallpaperChoice = wallpaperChoice;
+    if (theme === 'liquid-glass') document.documentElement.dataset.glassWallpaper = wallpaper;
+    else delete document.documentElement.dataset.glassWallpaper;
   }
 
   function applyLogo(id) {
@@ -60,18 +89,27 @@
     if (template) heroArt.appendChild(template.content.cloneNode(true));
   }
 
+  let lastStandardTheme = availableValue(themePicker, window.toolMac.lastStandardTheme);
   function applyTheme(id) {
-    const theme = availableValue(themePicker, id);
+    const glassEnabled = window.toolMac.liquidGlassAvailable === true && window.toolMac.liquidGlassEnabled === true;
+    if (glassThemeOption) {
+      if (glassEnabled && glassThemeOption.parentNode !== themePicker) themePicker.append(glassThemeOption);
+      if (!glassEnabled && glassThemeOption.parentNode === themePicker) glassThemeOption.remove();
+    }
+    const theme = availableValue(themePicker, id === 'liquid-glass' && !glassEnabled ? lastStandardTheme : id);
+    if (theme !== 'liquid-glass') lastStandardTheme = theme;
     themePicker.value = theme;
+    updateWallpaper(theme);
+    if (document.documentElement.dataset.theme === theme) return;
     const [label, title, description] = copy[theme];
     eyebrow.textContent = label;
     heading.textContent = title;
-    if (theme === 'front-row') heading.replaceChildren(logo.cloneNode(true));
+    if (theme === 'front-row' || theme === 'liquid-glass') heading.replaceChildren(logo.cloneNode(true));
     if (theme === 'night-shift') heading.replaceChildren(logo.cloneNode(true), ' DRIVE');
     subtitle.innerHTML = description;
     const graphite = theme === 'graphite';
     updateButton.hidden = graphite;
-    if (graphite) workspace.before(updates);
+    if (graphite && !updateDialog.open) workspace.before(updates);
     else updateDialog.append(updates);
     document.documentElement.dataset.theme = theme;
     pictureControl.hidden = theme !== 'front-row';
@@ -97,6 +135,23 @@
   });
   const retiredPhotoThemes = ['plasma-bloom', 'lightfall', 'violet-hour', 'solar-flare'];
   applyTheme(retiredPhotoThemes.includes(window.toolMac.theme) ? 'laser-grid' : window.toolMac.theme);
+  window.macSyncCatalogTheme = (id, savedWallpaper, savedChoice) => {
+    if (wallpaperPicker && typeof savedWallpaper === 'string') {
+      wallpaper = wallpaperPhoto(savedWallpaper);
+      wallpaperChoice = savedChoice === 'shuffle' ? 'shuffle' : wallpaper;
+    }
+    applyTheme(id ?? document.documentElement.dataset.theme);
+  };
+  wallpaperPicker?.addEventListener('change', () => {
+    const requested = wallpaperPicker.value;
+    if (themePicker.value === 'liquid-glass' && window.toolMac.liquidGlassEnabled &&
+        requested && availableValue(wallpaperPicker, requested) === requested) {
+      wallpaperChoice = requested;
+      if (requested !== 'shuffle') wallpaper = requested;
+      window.toolMac.setWallpaper(requested);
+    }
+    updateWallpaper(themePicker.value);
+  });
   if (window.toolMac.theme && themePicker.value !== window.toolMac.theme) {
     window.toolMac.setTheme(themePicker.value);
   }
@@ -147,6 +202,8 @@
   const tracklistToggle = byID('mac-player-tracklist');
   const tracklistPanel = byID('mac-tracklist-panel');
   const tracklistPosition = byID('mac-tracklist-position');
+  const visualizer = window.mountMacVisualizer();
+  const equalizer = window.mountMacEqualizer();
   const catalogToolbar = document.querySelector('.topbar');
   const savedPosition = window.toolMac.tracklistPosition;
   tracklistPosition.value = ['left', 'right'].includes(savedPosition) ? savedPosition : 'bottom';
@@ -462,6 +519,8 @@
     playerElapsed.textContent = formatTime(elapsed);
     playerDuration.textContent = formatTime(duration);
     tracklistToggle.disabled = !tracks.length;
+    visualizer.updatePlayer(visible, playing);
+    if (!visible) equalizer.hide();
     renderPlayerTracks();
     layoutTracklist();
   }
@@ -723,4 +782,89 @@
   renderLibrary();
   renderPlex();
   bridge('plex', {action: 'status'});
+})();
+
+(() => {
+  const bridge = window.toolMac;
+  const choice = document.getElementById('liquid-glass-choice');
+  if (!choice || !bridge?.liquidGlassAvailable) return;
+
+  const root = document.documentElement;
+  const library = document.getElementById('show-library');
+  const plex = document.getElementById('show-plex');
+  const updates = document.getElementById('show-updates');
+  const stage = document.getElementById('mac-visualizer');
+  const pickers = {
+    theme: document.getElementById('theme-choice'),
+    logo: document.getElementById('logo-choice'),
+    picture: document.getElementById('picture-choice')
+  };
+  const wallpaper = document.getElementById('glass-wallpaper-picker');
+  if (wallpaper) pickers.wallpaper = wallpaper;
+  let previousChrome = '';
+
+  function syncChrome(force = false) {
+    if (bridge.nativeGlassToolbar === false || root.dataset.liquidGlass !== 'true') return;
+    const state = {
+      theme: pickers.theme.value,
+      logo: pickers.logo.value,
+      picture: pickers.picture.value,
+      wallpaper: bridge.wallpaper,
+      wallpaperChoice: pickers.wallpaper?.value,
+      plexConnected: plex.dataset.connected === 'true',
+      updatesReady: updates.dataset.ready === 'true',
+      visible: choice.checked && stage.hidden && !document.querySelector('dialog[open]')
+    };
+    const signature = JSON.stringify(state);
+    if (force === true || signature !== previousChrome) {
+      previousChrome = signature;
+      bridge.glassChrome(state);
+    }
+  }
+
+  window.macLiquidGlassEnabled = (enabled, theme, wallpaper, wallpaperChoice) => {
+    const wasEnabled = root.dataset.liquidGlass === 'true';
+    choice.checked = enabled === true;
+    bridge.liquidGlassEnabled = choice.checked;
+    root.dataset.liquidGlass = String(choice.checked);
+    window.macSyncCatalogTheme(theme, wallpaper, wallpaperChoice);
+    if (choice.checked) syncChrome(true);
+    else {
+      previousChrome = '';
+      if (wasEnabled && (document.activeElement === document.body || !document.activeElement)) {
+        choice.focus({preventScroll: true});
+      }
+    }
+  };
+  choice.addEventListener('change', () => bridge.setLiquidGlass(choice.checked));
+  document.getElementById('liquid-glass-control').hidden = false;
+  root.dataset.glassCapable = 'true';
+  root.dataset.nativeGlass = String(bridge.nativeGlassToolbar !== false);
+
+  window.macGlassAction = (action, value) => {
+    if (root.dataset.liquidGlass !== 'true' || !stage.hidden || document.querySelector('dialog[open]')) return;
+    if (Object.hasOwn(pickers, action)) {
+      const picker = pickers[action];
+      if (action === 'picture' && pickers.theme.value !== 'front-row') return;
+      if (action === 'wallpaper' && pickers.theme.value !== 'liquid-glass') return;
+      if (!Array.from(picker.options).some(option => option.value === value)) return;
+      picker.value = value;
+      picker.dispatchEvent(new Event('change', {bubbles: true}));
+    } else {
+      const button = {library, plex, updates}[action];
+      if (button instanceof HTMLButtonElement) button.click();
+    }
+  };
+
+  // Mirror only public presentation values. A modal makes the native overlay
+  // disappear before the web dialog needs pointer or keyboard input.
+  const observer = new MutationObserver(syncChrome);
+  for (const dialog of document.querySelectorAll('dialog')) {
+    observer.observe(dialog, {attributes: true, attributeFilter: ['open']});
+  }
+  observer.observe(stage, {attributes: true, attributeFilter: ['hidden']});
+  observer.observe(plex, {attributes: true, attributeFilter: ['data-connected']});
+  observer.observe(updates, {attributes: true, attributeFilter: ['data-ready']});
+  for (const picker of Object.values(pickers)) picker.addEventListener('change', syncChrome);
+  window.macLiquidGlassEnabled(bridge.liquidGlassEnabled);
 })();

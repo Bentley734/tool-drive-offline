@@ -159,10 +159,12 @@ body[data-tracklist-side] .mac-player-tracks button.active { box-shadow: inset 2
 .plex-match strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 .plex-match span{color:var(--muted);font-size:10px}
 .plex-match button{padding:6px 11px;font-size:10px;flex-shrink:0}
-@media(max-width:900px){
+@media(max-width:940px){
   .mac-player-main{grid-template-columns:minmax(170px,1fr) auto minmax(210px,1.4fr);gap:10px}
   .mac-player-tools{grid-column:2;grid-row:2;justify-content:center}
   .mac-player-timeline{grid-column:3;grid-row:1/3}
+}
+@media(max-width:900px){
   .mac-player-tracks{grid-template-columns:1fr}
   .library-item ol{grid-template-columns:1fr}
 }
@@ -184,3 +186,58 @@ body[data-tracklist-side] .mac-player-tracks button.active { box-shadow: inset 2
   .plex-sources{grid-template-columns:minmax(0,1fr) auto}
   .plex-sources label{grid-column:1/-1}
 }
+
+/* The artwork takes over the catalog. The transport and queue still work. */
+body.mac-visualizing { overflow: hidden; }
+body.mac-visualizing .shell { visibility: hidden; }
+body.mac-visualizing[data-tracklist-side] .mac-tracklist-panel { top: 0; }
+#mac-visualizer {
+  position: fixed; z-index: 65; top: 0; left: 0; right: 0;
+  bottom: var(--mac-player-height,72px); overflow: hidden; background: #04050a;
+  color: #fbf9ff; color-scheme: dark;
+}
+#mac-visualizer[hidden] { display: none; }
+body[data-tracklist-side="left"]:not(.mac-tracklist-closing) #mac-visualizer { left: var(--mac-tracklist-width); }
+body[data-tracklist-side="right"]:not(.mac-tracklist-closing) #mac-visualizer { right: var(--mac-tracklist-width); }
+#mac-visualizer canvas { display: block; width: 100%; height: 100%; }
+#mac-visualizer canvas[hidden] { display: none; }
+.visualizer-toolbar {
+  position: absolute; top: 14px; left: 14px; right: 14px; display: flex; align-items: center;
+  gap: 8px; font: 12px -apple-system,BlinkMacSystemFont,sans-serif;
+}
+.visualizer-toolbar label { font-weight: 600; text-shadow: 0 1px 5px black; }
+.visualizer-toolbar button, .visualizer-toolbar select {
+  min-height: 32px; border: 1px solid #ffffff38; border-radius: 8px;
+  color: #f6f2fc; background-color: #13131ce8; font: inherit;
+}
+.visualizer-toolbar button { padding: 4px 10px; }
+.visualizer-toolbar select { padding: 4px 28px 4px 10px; }
+#mac-visualizer-fullscreen { margin-left: auto; }
+#mac-visualizer-close { width: 32px; font-size: 19px; padding: 0; }
+#mac-player-visualizer[aria-expanded=true], #mac-player-eq[data-active=true] { color: var(--amber); box-shadow: inset 0 0 0 1px currentColor; }
+@media(prefers-reduced-motion:no-preference) {
+  #mac-visualizer { transition: left 240ms ease-out, right 240ms ease-out; }
+}
+@media(max-width:800px) { .visualizer-toolbar { gap: 5px; } }
+
+#mac-eq-panel {
+  position: fixed; z-index: 85; right: 14px;
+  bottom: min(calc(var(--mac-player-height,72px) + 8px),max(12px,calc(100vh - 248px)));
+  width: min(320px,calc(100vw - 28px)); max-height: calc(100vh - 24px); overflow-y: auto;
+  padding: 15px; border: 1px solid var(--line); border-radius: 12px; color: var(--text);
+  background: var(--panel); box-shadow: 0 12px 40px #0008;
+}
+#mac-eq-panel[hidden] { display: none; }
+#mac-eq-panel header, .mac-eq-presets, .mac-eq-layer { display: flex; align-items: center; gap: 6px; }
+#mac-eq-panel header { justify-content: space-between; margin-bottom: 10px; }
+#mac-eq-title { font-size: 16px; }
+#mac-eq-close { border: 0; background: transparent; font-size: 18px; padding: 0 7px; }
+.mac-eq-presets { margin-bottom: 10px; }
+.mac-eq-presets button, #mac-eq-magik { min-height: 27px; padding: 4px 9px; border: 1px solid var(--line); border-radius: 6px; font-size: 11px; }
+#mac-eq-panel button[aria-pressed=true] { border-color: var(--amber); color: var(--amber); background: var(--raised); }
+.mac-eq-band { display: grid; grid-template-columns: 38px minmax(0,1fr) 43px; gap: 8px; align-items: center; min-height: 28px; font-size: 12px; }
+.mac-eq-band input { width: 100%; height: 18px; padding: 0; accent-color: var(--amber); }
+.mac-eq-band output { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.mac-eq-layer { gap: 9px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.mac-eq-layer span, #mac-eq-status { color: var(--muted); font-size: 11px; }
+#mac-eq-status { margin-top: 8px; }

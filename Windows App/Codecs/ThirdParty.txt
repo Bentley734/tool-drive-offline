@@ -1,0 +1,22 @@
+Tool Drive Offline 2.0 — Windows lossless audio decoder
+
+The separate Lossless-x86.exe and Lossless-x64.exe programs use FFmpeg 8.1.3,
+copyright the FFmpeg contributors, under the GNU Lesser General Public License,
+version 2.1 or later. The decoder entry point, lossless.c, carries the same
+license. See COPYING.LGPLv2.1. FFmpeg is available at https://ffmpeg.org/.
+
+The Windows source archive for this release includes the unmodified FFmpeg
+source tarball, the complete decoder source, the build script, and the license
+in Windows App/Codecs. The FFmpeg source tarball is also available from
+https://ffmpeg.org/releases/ffmpeg-8.1.3.tar.xz.
+
+To rebuild these executables, install Python 3, Make, and the i686-w64-mingw32
+and x86_64-w64-mingw32 GCC toolchains. Run ./build-decoders.sh from this folder
+using a POSIX shell. The supplied binaries were built with MinGW-w64 GCC 14.2.0.
+The configure step enables the AIFF, CAF and MOV/MP4 demuxers, Apple Lossless
+and PCM-family decoders, and Apple IMA and MACE. FFmpeg network protocols and
+its general-purpose command-line tools are disabled. The decoder reads one
+input file and writes one temporary playback WAV. Playback retains the original
+file and sample rate. The WAV supports up to 8 channels and 2 GiB per track,
+with 16/32-bit integer PCM or 32-bit floating-point samples. ALAC and integer
+PCM through 32 bits retain sample precision. Double PCM is rendered as float32.

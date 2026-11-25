@@ -107,7 +107,7 @@ namespace ToolDriveOffline
                 using (HttpClient client = new HttpClient(handler))
                 {
                     client.Timeout = TimeSpan.FromSeconds(30);
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("ToolDriveOffline/1.1 MetadataOnly");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("ToolDriveOffline/" + AppUpdater.CurrentVersion.ToString(3) + " CatalogUpdate");
                     token.ThrowIfCancellationRequested();
                     using (CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(token))
                     using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, address))
@@ -409,7 +409,7 @@ namespace ToolDriveOffline
         private const int MaximumCacheBytes = 32 * 1024 * 1024;
         private static DateTime? lastChecked;
         public static DateTime? LastCheckedUtc { get { return lastChecked; } }
-        public static string FilePath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Tool Drive Offline", "catalog-update.json"); } }
+        public static string FilePath { get { return Path.Combine(DesktopBootstrap.Profile, "catalog-update.json"); } }
 
         public static Catalog Load(out string warning)
         {

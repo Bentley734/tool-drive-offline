@@ -21,7 +21,7 @@ struct CatalogSourceContext {
     }
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler, WKNavigationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKScriptMessageHandler, WKNavigationDelegate {
     var activeCatalog = [String: Any]()
     var catalogOperation: UpdateOperation?
     var appOperation: UpdateOperation?
@@ -30,6 +30,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
     var cacheNotice = "Bundled catalog · available offline"
     var window: NSWindow!
     var web: WKWebView!
+    var glassView: NSView?
+    var glassMenuItem: NSMenuItem?
+    var glassFocusOnReturn: String?
+    let glassWallpapers = GlassWallpaperPreferences(defaults: .standard, wallpaperIDs: GlassWallpaper.choices.map(\.id))
     let liveLinkService = LiveMediaService()
     let playerMediaService = LiveMediaService()
     lazy var playerController = PlayerController(media: playerMediaService)
@@ -84,7 +88,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         controller.add(self, name: "theme")
         controller.add(self, name: "picture")
         controller.add(self, name: "logo")
+        controller.add(self, name: "liquidGlass")
+        controller.add(self, name: "glassChrome")
+        controller.add(self, name: "wallpaper")
         controller.add(self, name: "tracklistPosition")
+        controller.add(self, name: "visualizer")
+        controller.add(self, name: "equalizer")
         controller.add(self, name: "live")
         controller.add(self, name: "player")
         controller.add(self, name: "download")
@@ -115,22 +124,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             } catch { storageWarning = true }
         }
         let encoded = String(data: try! JSONSerialization.data(withJSONObject: [saved]), encoding: .utf8)!
-        let theme = UserDefaults.standard.string(forKey: "catalogTheme") ?? "front-row"
+        let theme = catalogThemes.effectiveTheme
+        catalogThemes.select(theme)
+        if exclusiveGlassActive { glassWallpapers.enterTheme() }
         let picture = UserDefaults.standard.string(forKey: "frontRowPicture") ?? "blue-silhouette"
         let logo = UserDefaults.standard.string(forKey: "catalogLogo") ?? "classic"
         let tracklistPosition = UserDefaults.standard.string(forKey: "tracklistPosition") ?? "bottom"
+        let visualizerPreset = UserDefaults.standard.string(forKey: "visualizerPreset") ?? "ember"
         controller.addUserScript(WKUserScript(source: """
         (() => {
           let saved = (\(encoded))[0];
           window.toolMac = {
             theme: (\(javascriptJSON([theme])))[0],
+            lastStandardTheme: (\(javascriptJSON([catalogThemes.lastStandardTheme])))[0],
             setTheme: id => window.webkit.messageHandlers.theme.postMessage(id),
             picture: (\(javascriptJSON([picture])))[0],
             setPicture: id => window.webkit.messageHandlers.picture.postMessage(id),
+            wallpaper: (\(javascriptJSON([glassWallpapers.wallpaper])))[0],
+            wallpaperChoice: (\(javascriptJSON([glassWallpapers.choice])))[0],
+            setWallpaper: id => window.webkit.messageHandlers.wallpaper.postMessage(id),
             logo: (\(javascriptJSON([logo])))[0],
             setLogo: id => window.webkit.messageHandlers.logo.postMessage(id),
+            liquidGlassAvailable: true,
+            nativeGlassToolbar: \(supportsNativeGlassToolbar),
+            liquidGlassEnabled: \(liquidGlassEnabled),
+            setLiquidGlass: enabled => window.webkit.messageHandlers.liquidGlass.postMessage(enabled ? 'on' : 'off'),
+            glassChrome: state => window.webkit.messageHandlers.glassChrome.postMessage(JSON.stringify(state)),
             tracklistPosition: (\(javascriptJSON([tracklistPosition])))[0],
             setTracklistPosition: id => window.webkit.messageHandlers.tracklistPosition.postMessage(id),
+            visualizerPreset: (\(javascriptJSON([visualizerPreset])))[0],
+            visualizer: value => window.webkit.messageHandlers.visualizer.postMessage(JSON.stringify(value)),
+            equalizer: value => window.webkit.messageHandlers.equalizer.postMessage(JSON.stringify(value)),
             catalog: \(javascriptJSON(activeCatalog)),
             load: () => saved,
             save: value => { saved = value; window.webkit.messageHandlers.savedShows.postMessage(value); },
@@ -147,8 +171,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         web.navigationDelegate = self
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 850), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "Tool Drive Offline"
+        window.delegate = self
+        window.collectionBehavior.insert(.fullScreenPrimary)
         window.minSize = NSSize(width: 720, height: 520)
-        window.contentView = web
+        installCatalogContent()
+        applyExclusiveWindowAppearance(exclusiveGlassActive)
         window.setFrameAutosaveName("ToolDriveMainWindow")
         window.center()
         window.makeKeyAndOrderFront(nil)
@@ -184,10 +211,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             let item = view.submenu!.addItem(withTitle: title, action: action, keyEquivalent: key); item.target = self
         }
         view.submenu!.addItem(.separator())
+        addLiquidGlassMenuItem(to: view.submenu!)
         let iconItem = view.submenu!.addItem(withTitle: "App Icon", action: nil, keyEquivalent: "")
         let icons = NSMenu(title: "App Icon")
         iconItem.submenu = icons
-        for (id, title) in [("classic", "Classic"), ("2006", "2006")] {
+        for (id, title) in [("multicolor", "Multicolor"), ("classic", "Classic"), ("2006", "2006")] {
             let item = icons.addItem(withTitle: title, action: #selector(chooseAppIcon(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = id
@@ -213,9 +241,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         }
     }
     @objc func findShow() { web.evaluateJavaScript("document.getElementById('search').focus()", completionHandler: nil) }
-    @objc func zoomIn() { web.pageZoom = min(2, web.pageZoom + 0.1) }
-    @objc func zoomOut() { web.pageZoom = max(0.6, web.pageZoom - 0.1) }
-    @objc func resetZoom() { web.pageZoom = 1 }
+    @objc func zoomIn() { setCatalogZoom(min(2, web.pageZoom + 0.1)) }
+    @objc func zoomOut() { setCatalogZoom(max(0.6, web.pageZoom - 0.1)) }
+    @objc func resetZoom() { setCatalogZoom(1) }
     func alert(_ title: String, _ message: String) {
         let alert = NSAlert(); alert.messageText = title; alert.informativeText = message
         alert.beginSheetModal(for: window)
@@ -252,11 +280,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         guard let data = value.data(using: .utf8), data.count <= 128 * 1024 else { return nil }
         return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
-    func evaluateCallback(_ name: String, _ value: [String: Any]) {
-        guard ["macLiveLinks", "macPlayerState", "macLibraryState", "macDownloadState", "macPlexState"].contains(name) else { return }
+    func evaluateCallback(_ name: String, _ value: Any) {
+        guard ["macLiveLinks", "macPlayerState", "macLibraryState", "macDownloadState", "macPlexState",
+               "macVisualizerLevels", "macVisualizerWindowState", "macEqualizerState"].contains(name) else { return }
         web?.evaluateJavaScript("window.\(name)?.(\(javascriptJSON(value)))", completionHandler: nil)
     }
     func configurePlayerCallbacks() {
+        playerController.onEqualizerAvailability = { [weak self] available in
+            self?.evaluateCallback("macEqualizerState", ["available": available as Any? ?? NSNull()])
+        }
+        playerController.onVisualizerLevels = { [weak self] levels in
+            self?.evaluateCallback("macVisualizerLevels", levels)
+        }
         playerController.onTrackListChange = { [weak self] event in
             guard let self = self else { return }
             let rows = event["tracks"] as? [[String: Any]] ?? []
@@ -272,6 +307,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             self?.publishPlayerState()
         }
     }
+    func resetRecordingEQ() {
+        playerController.setEqualizer(.flat)
+        evaluateCallback("macEqualizerState", ["reset": true])
+    }
+    private func publishVisualizerWindowState() {
+        let visible = window.occlusionState.contains(.visible)
+        if !visible { playerController.setVisualizerActive(false) }
+        evaluateCallback("macVisualizerWindowState", ["visible": visible, "fullScreen": window.styleMask.contains(.fullScreen)])
+    }
+    func windowDidChangeOcclusionState(_ notification: Notification) { publishVisualizerWindowState() }
+    func windowDidEnterFullScreen(_ notification: Notification) { publishVisualizerWindowState() }
+    func windowDidExitFullScreen(_ notification: Notification) { publishVisualizerWindowState() }
     func configurePlexCallbacks() {
         plexService.onStatusChange = { [weak self] _ in self?.publishPlexState() }
     }
@@ -507,6 +554,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         }
     }
     func playPlexMatch(_ match: PlexSearchResult, context: String? = nil) {
+        resetRecordingEQ()
         playerClosed = false
         playerUsesPlex = true
         playerContextLabel = context ?? match.collection
@@ -669,6 +717,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
                 }
                 do {
                     let browser = try DownloadBrowser(library: library, source: context.libraryDescriptor, folderURL: url)
+                    browser.setExclusiveGlass(self.exclusiveGlassActive)
                     browser.onProgress = { [weak self] progress in
                         self?.publishDownload(sourceID: context.sourceID, status: "downloading",
                                               progress: progress.fraction, message: progress.message,
@@ -725,6 +774,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             playerTracks = []
             lastPlayerState = ["status": "loading", "message": "Loading tracks from the Tool Drive Project…"]
             publishPlayerState()
+            resetRecordingEQ()
             playerController.loadLiveSource(showID: context.showID, sourceID: context.sourceID,
                                              date: context.date, version: context.version,
                                              venue: context.venue, versionLabel: context.versionLabel)
@@ -765,6 +815,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             LiveTrack(number: track.trackNumber, title: track.title,
                       duration: track.durationSeconds.map(TimeInterval.init), url: url)
         }
+        resetRecordingEQ()
         playerController.loadTracks(tracks, collection: playerContextLabel,
                                     startTrack: max(0, min(startTrack, urls.count - 1)), autoplay: true)
     }
@@ -884,17 +935,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             else if message.name == "library" { handleLibrary(request) }
             else { handlePlex(request) }
         } else if message.name == "theme" {
-            guard ["graphite", "front-row", "night-shift", "laser-grid"].contains(value) else { return }
-            UserDefaults.standard.set(value, forKey: "catalogTheme")
+            if setCatalogTheme(value), exclusiveGlassActive { syncLiquidGlassPage() }
+        } else if message.name == "wallpaper" {
+            if setCatalogGlassWallpaper(value) { syncLiquidGlassPage() }
         } else if message.name == "picture" {
             guard ["blue-silhouette", "governors-ball"].contains(value) else { return }
             UserDefaults.standard.set(value, forKey: "frontRowPicture")
         } else if message.name == "logo" {
             guard ["classic", "2006"].contains(value) else { return }
             UserDefaults.standard.set(value, forKey: "catalogLogo")
+        } else if message.name == "liquidGlass", ["on", "off"].contains(value) {
+            setLiquidGlassEnabled(value == "on", focusAppearance: true)
+        } else if message.name == "glassChrome", let state = payload(value) {
+            updateGlassChrome(state)
         } else if message.name == "tracklistPosition" {
             guard ["bottom", "left", "right"].contains(value) else { return }
             UserDefaults.standard.set(value, forKey: "tracklistPosition")
+        } else if message.name == "equalizer", let request = payload(value) {
+            guard let bass = request["bass"] as? Double, let mid = request["mid"] as? Double,
+                  let treble = request["treble"] as? Double, let magik = request["magik"] as? Bool,
+                  [bass, mid, treble].allSatisfy({ (-10.0...10.0).contains($0) }) else { return }
+            playerController.setEqualizer(PlaybackEQSettings(bass: bass, mid: mid, treble: treble, magik: magik))
+        } else if message.name == "visualizer", let request = payload(value) {
+            switch request["action"] as? String {
+            case "listen": playerController.setVisualizerActive(window.occlusionState.contains(.visible))
+            case "idle": playerController.setVisualizerActive(false)
+            case "window": publishVisualizerWindowState()
+            case "fullscreen": window.toggleFullScreen(nil)
+            case "preset":
+                if let id = request["id"] as? String, ["ember", "tidal", "prism", "tunnel"].contains(id) {
+                    UserDefaults.standard.set(id, forKey: "visualizerPreset")
+                }
+            default: break
+            }
         } else if message.name == "updates" {
             if value == "catalog" { startCatalogUpdate() } else if value == "app" { startAppUpdate() }
         } else if message.name == "clipboard" {
@@ -913,6 +986,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         decisionHandler(navigationAction.request.url?.standardizedFileURL == bundled ? .allow : .cancel)
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        syncLiquidGlassPage()
         if let ack = updateAcknowledgment { try? Data("ready".utf8).write(to: ack, options: .atomic) }
         guard testing else {
             updateState("catalog", cacheNotice)

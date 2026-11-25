@@ -1,0 +1,30 @@
+:root {font-family:"Segoe UI",system-ui,sans-serif}
+#appearance-dialog {width:min(440px, calc(100vw - 32px));color:var(--text);background:var(--panel)}
+#appearance-title {font-size:1.3rem;letter-spacing:-.025em;margin:0}
+.windows-settings, #windows-theme-settings {display:grid}
+.windows-settings {padding:4px 22px 22px}
+.windows-settings :is(.theme-picker,.windows-setting) {
+  display:grid;grid-template-columns:minmax(86px,1fr) minmax(130px,1.7fr);align-items:center;
+  gap:12px;min-height:54px;border-bottom:1px solid var(--line);margin:0;
+}
+.windows-settings :is(.theme-picker,.windows-setting) label {font:500 .9rem/1.3 "Segoe UI",system-ui,sans-serif;color:var(--text);text-transform:none;letter-spacing:0}
+.windows-settings select {display:block;width:100%;max-width:100%;font:400 .9rem/1.35 "Segoe UI",system-ui,sans-serif;color:var(--text);background-color:var(--raised);border:1px solid var(--line);padding:6px 9px;border-radius:6px}
+.windows-settings .glass-choice {justify-content:flex-start;gap:8px;padding:12px 0 10px;min-height:38px;font:500 .9rem/1.3 "Segoe UI",system-ui,sans-serif;color:var(--text)}
+.windows-settings .glass-choice input {height:18px;width:18px}
+#show-appearance {white-space:nowrap}
+#windows-host-notice {position:fixed;right:18px;bottom:18px;z-index:80;padding:10px 16px;max-width:min(460px,90vw);color:var(--text);background:var(--panel);border:1px solid var(--amber);border-radius:8px;box-shadow:0 3px 18px #0006}
+:root[data-windows-layout="columns"] #windows-columns-scroll {width:100%;overflow:auto;overscroll-behavior-x:contain;padding-bottom:2px}
+:root[data-windows-layout="columns"] #list-head {display:none}
+#windows-column-headers, .windows-data-row {display:grid;grid-template-columns:var(--columns-grid);width:max(100%,var(--columns-total));align-items:stretch}
+#windows-column-headers {background:var(--raised);color:var(--muted);font-size:.76rem;font-weight:650}
+#windows-column-headers > * {position:relative;padding:8px 9px 8px 6px;overflow:hidden}
+.column-grip {position:absolute;inset:0 0 0 auto;width:10px;cursor:col-resize;touch-action:none;user-select:none;border-right:1px solid var(--line)}
+.column-grip:focus-visible, .column-grip:hover {border-color:var(--amber);box-shadow:inset -2px 0 var(--amber);outline:0}
+.windows-data-row {background:var(--panel);border-bottom:1px solid var(--line);min-height:40px}
+.windows-data-row:hover, .windows-data-row:focus-within {background:var(--raised)}
+.windows-data-row > div {align-content:center;overflow:hidden;padding:4px 6px;text-overflow:ellipsis;white-space:nowrap;font-size:.83rem}
+.windows-data-row .column-venue {width:100%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;text-align:left;display:block;color:var(--text);font-size:inherit;font-weight:600;border:0;background:none;padding:5px 0}
+.windows-data-row .column-venue:hover {text-decoration:underline}
+.windows-data-row .sound-value {font-size:.88rem;color:var(--amber)}
+.windows-data-row .save-btn, .windows-data-row .column-copy {font-size:.85rem;min-width:25px;padding:2px 4px;height:26px;border:1px solid var(--line);border-radius:3px;margin:0 2px 0 0}
+@media (forced-colors: active) { .column-grip:focus-visible {outline:2px solid Highlight;outline-offset:-2px} }

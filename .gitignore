@@ -14,3 +14,9 @@ Desktop.ini
 
 macOS App/dist/
 work-checks/
+
+!Windows App/Codecs/Lossless-x86.exe
+!Windows App/Codecs/Lossless-x64.exe
+
+xcuserdata/
+*.xcuserstate

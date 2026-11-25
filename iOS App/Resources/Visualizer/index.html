@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+<title>Concert visualizer</title>
+<style>
+html, body, canvas { width: 100%; height: 100%; margin: 0; display: block; overflow: hidden; background: #060509; }
+canvas[hidden] { display: none; }
+</style>
+</head>
+<body>
+<canvas id="tunnel"></canvas><canvas id="filaments" hidden></canvas>
+<script src="visualizer-art.js"></script><script src="visualizer-tunnel.js"></script>
+<script src="visualizer-tunnel-fallback.js"></script><script src="mobile.js"></script>
+</body></html>

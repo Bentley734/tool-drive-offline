@@ -27,7 +27,11 @@ final class UpdateOperation: NSObject, URLSessionDataDelegate {
         let session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
         defer { session.invalidateAndCancel() }
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        #if os(iOS)
+        request.setValue("ToolDriveOffline-iOS/1.0", forHTTPHeaderField: "User-Agent")
+        #else
         request.setValue("ToolDriveOffline-macOS/1.6", forHTTPHeaderField: "User-Agent")
+        #endif
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let semaphore = DispatchSemaphore(value: 0); done = semaphore
         let download = session.dataTask(with: request)
@@ -168,6 +172,7 @@ enum CatalogUpdate {
     }
 }
 
+#if os(macOS)
 struct MacRelease {
     let version: String
     let url: URL
@@ -247,3 +252,5 @@ enum AppUpdate {
         return candidate
     }
 }
+
+#endif

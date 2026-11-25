@@ -1,8 +1,8 @@
-# Tool Drive Offline
+# Tool Drive Offline 2.0
 
-A Windows and macOS show browser for finding a Tool recording. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
+A Windows, macOS, iPhone, iPad and Apple TV show browser for finding a Tool recording. The included catalog contains **1,299 documented shows**, captured on **November 21, 2026**.
 
-The catalog, themes, search, and saved shows work offline. The macOS app can optionally resolve current Tool Drive Project streams and original download folders, play audio, keep downloaded recordings in a private local Library, and connect to a user's own Plex server. The Windows and single-file HTML editions remain metadata-only. All editions can check for catalog updates without replacing the working offline snapshot when a request fails.
+Windows, Mac, iPhone, iPad, and Apple TV share release version **2.0.0**. Each opens in Liquid Glass on first launch and remembers the theme you choose. All five themes, concert photography, the catalog, search, and bookmarks work offline. All five devices can stream archive recordings or save them for offline listening. Windows, Mac, iPhone, and iPad also support a personal Plex library. The separate single-file HTML edition is an offline metadata browser.
 
 ## Features
 
@@ -14,24 +14,40 @@ The catalog, themes, search, and saved shows work offline. The macOS app can opt
 - Copy a date or `Tool YYYY-MM-DD` to paste into Plexamp search.
 - Check for new catalog entries and sound ratings at startup, then keep the refreshed catalog available offline.
 - Keep resized column widths between launches, including when moving to another display scale.
-- Browse large result lists using virtual rows and cell values supplied as needed.
+- Choose the Windows column view or themed show cards.
 - Download verified GitHub app updates and install them with **Restart to update**, without replacing the EXE by hand.
-- Use matching dark dropdowns, scrollbars, rating controls, checkboxes, and recording-detail tabs.
-- On macOS, stream available recordings through a native player with a queue, seeking, track selection, and system media controls.
-- Save a stream to the offline Library or import original audio from the in-app download browser; play FLAC, ALAC, WAV, AIFF, MP3, AAC, M4A/MP4, and CAF files without conversion.
+- Choose Liquid Glass, Front Row, Night Shift, Graphite, or Laser Grid. Pick a concert wallpaper or shuffle it on launch.
+- Stream available recordings with seeking, a track queue, a tone equalizer, and an audio-reactive visualizer.
+- Save a stream to the offline Library or import original audio from the in-app download browser; keep the original audio files. Codec support depends on the platform.
 - Optionally connect a Plex account, select a personal server, and play an exact show/source match from that server without exposing the Plex token to the page.
 
 Sound ratings describe **recording quality out of 10**, rather than performance quality. A show qualifies only when one source meets all active source filters; its displayed rating is the highest rating among those matching sources. Unrated recordings are distinct from a zero score. Ratings reflect the bundled snapshot or your latest successful catalog update. Vote counts are unavailable.
 
 The default status, **On the drive**, limits results to recordings marked available in the source archive. Other statuses include confirmed, unconfirmed, and shows without a known recording. The header reports on-drive recordings separately from all documented shows; the bundled snapshot contains **1,342 on-drive recordings**, and this count refreshes with catalog updates. This status does not scan or describe your Plex library.
 
+## Run the iPhone and iPad app
+
+Open the project in **iOS App** with Xcode 26 or later. The native app supports iOS and iPadOS 17 and later. It includes the offline catalog, bookmarks, archive streams, local audio imports, Plex, equalizer, visualizers, all five Mac themes and nine concert wallpapers. On a wide iPad, the catalog and the selected recording appear side by side. The standalone project download includes its resources and shared source files. [iPhone and iPad setup and controls](iOS%20App/README.md)
+
+## Run the Apple TV app
+
+Open the project in **tvOS App** with Xcode 26 or later. Use the Siri Remote to explore the catalog, play or save a recording, and change themes in Appearance. The app supports tvOS 17 and later. [Apple TV setup and controls](tvOS%20App/README.md)
+
 ## Run the macOS app
 
-The Mac app supports **macOS 11 or later on Apple silicon and Intel**. Download the Mac ZIP from [GitHub Releases](https://github.com/Bentley734/tool-drive-offline/releases/latest), extract it, and move `Tool Drive Offline.app` to Applications or another writable folder. The 1.7.0 Mac build uses an ad-hoc signature and has no Apple notarization ticket. macOS may ask for approval on first launch.
+The Mac app supports **macOS 11 or later on Apple silicon and Intel**. Download the Mac ZIP from [GitHub Releases](https://github.com/Bentley734/tool-drive-offline/releases/latest), extract it, and move `Tool Drive Offline.app` to Applications or another writable folder. The local development build is ad-hoc signed and is not notarized by Apple. macOS may ask for approval on first launch.
 
 The Mac version uses AppKit, the system WebKit engine, and AVFoundation. In addition to the offline catalog, it resolves current download availability when a show is opened and offers **Stream**, **Open download**, **Save to Library**, and optional **Play from Plex** actions. The native player supports queues, seeking, track selection, automatic track advance, retry handling, and macOS media keys. Local playback accepts FLAC, Apple Lossless, WAV, AIFF, MP3, AAC, M4A/MP4, and CAF audio.
 
-In the Mac menu bar, **View → App Icon** switches the running app’s Dock icon between Classic and 2006. The toolbar’s Logo picker controls the artwork inside the catalog. During playback, open **Tracklist** and use **Position** to place the list at the bottom, left, or right of the app window. Both preferences are saved on the Mac.
+Finder and the Dock use the multicolor TOOL icon by default. On macOS 26 and later its layered artwork follows the system icon appearance, including Dark, Clear, and Tinted. In the Mac menu bar, **View → App Icon** lets you choose Multicolor, Classic, or 2006 for the running app’s Dock icon. The toolbar’s Logo picker controls the artwork inside the catalog. During playback, open **Tracklist** and use **Position** to place the list at the bottom, left, or right of the app window. Both preferences are saved on the Mac.
+
+On macOS 26 or later, **View → Use Liquid Glass** gives every theme a native floating toolbar for Library, Plex, and Updates. Its **Appearance** menu includes the theme, logo, and photo choices for the active theme. The app remembers the glass setting independently. The player and tracklist follow the selected appearance and honor Reduce Transparency.
+
+New Mac installations open with a concert photo behind the catalog and its translucent controls. After switching themes, return to **Liquid Glass** using the theme picker. Older supported Macs offer glass-style panels and the wallpaper picker in the catalog toolbar. Open **Appearance → Wallpaper** to choose from nine bundled concert photos. Crimson Current is the default. Choose **Shuffle** for a different concert photo each time you open the app in Liquid Glass. The photo stays in place for that session. Choose a photo by name to keep it across launches. The wallpaper works offline and is remembered separately from the Front Row picture. Switching off glass returns to the preceding standard theme. The logo selection carries across both.
+
+On the Mac, **Visualizer** opens four original, locally rendered animations. **Infinite Filigree** takes a 48-second looping flight through a toroidal tunnel of ultraviolet crystal, emerald veins, and gold geometric tracery. The tunnel targets 60 frames per second and adjusts its rendering resolution during playback. A Canvas version is available on Macs without WebGL. **Ember Bloom**, **Tidal Glass**, and **Prism Veil** explore flowing fractal forms inspired by Electric Sheep. Each preset responds to bass, midrange, and treble when audio analysis is available. Pause holds the current frame. Reduce Motion uses a still image. The tracklist and transport are available in full screen.
+
+**EQ** provides the Tool Drive Project’s Bass Boost, Vocal, and Bright settings, three manual bands, and an independent eight-filter Magik effect. Magik layers with any tone preset, or it can run on its own. Flat resets all filters. Settings follow the current recording across tracks. The player starts the next recording flat and indicates when a track cannot use EQ.
 
 **Save to Library** downloads the site's stream tracks into a hidden staging area and publishes the recording only after every track and its manifest are complete. **Open download** uses an isolated in-app Google Drive browser on macOS 11.3 or later; a downloaded audio file or ZIP is validated before its supported audio files are imported. Removing a Library recording moves it to the Trash. The original files are preserved and are not transcoded.
 
@@ -41,7 +57,7 @@ The app also checks catalog metadata and GitHub releases at startup, supports ca
 
 Mac data lives in `~/Library/Application Support/Tool Drive Offline/`, with downloaded recordings under `Library/Sources/`; Plex credentials live separately in the macOS Keychain. The app needs no Python or separate web server at runtime.
 
-Build and check on a Mac with Xcode Command Line Tools and Python 3:
+Build and check on a Mac with Xcode 26 or later and Python 3. The build uses the Xcode asset catalog compiler for the layered app icon.
 
 ```sh
 bash "macOS App/build-app.sh"
@@ -54,21 +70,11 @@ Builds appear in `macOS App/dist/`. For a notarized build, set `MAC_SIGN_IDENTIT
 
 ## Run the Windows app
 
-Requires Windows and **.NET Framework 4.8**. Download the Windows package from the [latest release](https://github.com/Bentley734/tool-drive-offline/releases/latest), extract it, and open `Tool Drive Offline.exe`. The executable embeds its catalog and needs no server or sidecar data files.
+Open **Tool.Drive.Offline.exe** on Windows 10 or 11 with .NET Framework 4.8 and the Microsoft Edge WebView2 Runtime. The single executable includes the catalog, concert photos, themes and visualizer artwork. It also accepts the verified Windows executable updates offered by earlier versions.
 
-Use **Ctrl+F** to focus search. Double-click a row or press **Enter** on a selected row to open details. Drag column-header edges to adjust column widths; changes are remembered between launches. All seven columns remain available through horizontal scrolling when needed. Type a minimum rating and press **Tab** to apply it, or use the minus/plus controls.
+Open **Appearance** to choose a theme, concert photo, logo, or app icon. In Liquid Glass, **Wallpaper → Shuffle** changes the photo at launch. Use **Ctrl+F** to search and choose a show to open its recording sources. In the player, choose a tracklist position, EQ preset or visualizer. Use **Plex** to link your account in your browser and select a server and music library. The app stores Plex credentials under your Windows account using Windows data protection.
 
-The Windows app draws its dropdowns, scrollbars, rating controls, checkboxes, and detail tabs in the same graphite and amber palette. Dropdowns support arrow keys, typing to find an item, **F4** or **Alt+Down** to open, **Enter** to choose, and **Escape** to cancel. Scrollbar thumbs can be dragged; **Shift+wheel** scrolls the results horizontally. Use **Ctrl+Tab** to switch recording-detail sections.
-
-Saved shows are stored in:
-
-```text
-%LOCALAPPDATA%\Tool Drive Offline\saved-shows.json
-```
-
-If the app cannot write that file, changes remain available for the current session and the app displays a notice.
-
-Column widths are stored separately in `%LOCALAPPDATA%\Tool Drive Offline\column-layout.json`. Widths are stored in logical display units and scaled for the monitor when restored. The app saves after a short pause in resizing and again on normal close; unreadable settings fall back to defaults.
+Windows keeps bookmarks, cached catalog data, and saved column widths in their original files under `%LOCALAPPDATA%\Tool Drive Offline`. The player and Library also use that profile for new recordings and preferences. The standalone HTML page stores its own bookmarks in the browser.
 
 ## Catalog updates in Windows
 
@@ -104,7 +110,7 @@ The HTML version remains a static snapshot and does not include the Windows cata
 
 ## Build and test
 
-Run these commands in PowerShell from the repository root. Building uses the C# compiler included with .NET Framework and does not download dependencies.
+Run these commands in PowerShell from the repository root. The Windows build uses Python 3.9 or newer, the .NET Framework C# compiler, and a pinned Microsoft WebView2 SDK. The first build downloads the SDK if it is not already cached. Use `-WebView2Package` to supply the pinned NuGet package for an offline build.
 
 ```powershell
 & ".\Windows App\build-app.ps1"
@@ -122,7 +128,7 @@ Validate that the HTML and native catalogs agree and contain no network or audio
 
 The local hidden-control benchmark also checks all 1,299 results, virtual cell values, selected-row actions, and width conversions at different display scales. It does not open a window or perform startup update requests.
 
-The main application source is `Windows App/ToolDriveOffline.cs`; catalog download/import/cache code is in `Windows App/CatalogUpdates.cs`; executable download, verification, helper handoff, and replacement code is in `Windows App/AppUpdates.cs`. Custom control painting, input, and scroll hosts are in `Windows App/ThemedInputs.cs`, `Windows App/ThemedScrollBar.cs`, and `Windows App/ThemedScrollHosts.cs`. `catalog.json` supplies the embedded metadata; `app.template.html` supplies the HTML interface.
+The Windows entry point is in `Windows App/ToolDriveOffline.cs`. `ArchiveWindow.cs` hosts the embedded catalog and connects it to the Windows media, library, Plex, and update services. The Windows page shares the Mac theme and visualizer resources. `CatalogUpdates.cs` handles metadata, and `AppUpdates.cs` verifies and installs executable updates.
 
 App-update checks also reject invalid digests, wrong repositories, old releases, and invalid executable versions. File-replacement fixtures verify that a failed restart restores the previous EXE without touching installed app data.
 

@@ -1,4 +1,5 @@
 TOOL DRIVE OFFLINE — macOS
+Version 2.0.0
 
 Requires macOS 11 or later. Supports Apple silicon and Intel Macs.
 Extract Tool.Drive.Offline.macOS.zip and move Tool Drive Offline.app to
@@ -9,20 +10,37 @@ for approval before its first launch. A public release should be signed
 with the project's Apple Developer ID and notarized before distribution.
 
 THE ARCHIVE
-Use Theme in the toolbar to choose Front Row, Night Shift, Graphite
-or Laser Grid. Laser Grid features the green
-lasers from Philadelphia. If you last used a photo theme removed after
-version 1.5.0, the app opens in Laser Grid.
-Use Logo to choose Classic or 2006 across all themes.
-Use View > App Icon in the Mac menu bar to choose Classic or 2006 for
-the running app's Dock icon. Finder shows the Classic icon.
+New installations open in full-window Liquid Glass on every supported Mac.
+An upgrade keeps your saved theme, logo, picture, wallpaper and glass setting.
+On macOS 26 or later, use Appearance in the floating toolbar. On earlier
+macOS versions, the Theme, Logo and Wallpaper menus appear in the catalog
+toolbar above the archive. The earlier interface uses frosted surfaces and
+the same concert photography.
+
+Choose Liquid Glass, Front Row, Night Shift, Graphite or Laser Grid. Laser
+Grid features green lasers from Philadelphia. The Logo menu offers Classic
+and 2006. In Liquid Glass, choose one of nine concert photos under Wallpaper.
+Crimson Current is the initial photo. Shuffle picks a different photo each
+time you open the app in Liquid Glass. Selecting a photo by name keeps it
+across launches. The app stores the Front Row picture separately.
+
+View > Use Liquid Glass switches glass controls on or off. With glass on,
+you can select the Liquid Glass theme or keep a standard theme. Turning glass
+off from the full-window theme returns to the most recent standard theme.
+If this is your first launch, that return theme is Front Row. Reduce
+Transparency gives the catalog, Library, Plex and player solid surfaces.
+Finder and the Dock use the multicolor TOOL artwork by default. On macOS
+26 or later, this icon adapts to the system Dark, Clear and Tinted styles.
+In the Mac menu bar, use View > App Icon to choose Multicolor, Classic,
+or 2006 for the running app's Dock icon.
 In Front Row, use Picture to choose Blue Silhouette
 or Governors Ball. Your Mac remembers the theme, logo and picture choice.
 Front Row starts with Blue Silhouette. If you used Index Blue or Negative Space, this
 update opens in Front Row with your saved logo and Front Row picture.
 If you had a retired theme from 1.4.1, the catalog opens in Front Row.
-Use Updates in the toolbar for catalog and app update controls. Graphite
-shows the same controls above the results. All theme artwork works offline.
+Use Updates in the toolbar for catalog and app update controls. In the
+standard appearance, Graphite shows the same controls above the results.
+All theme artwork works offline.
 
 The entire catalog is bundled. Search dates, venues, cities, tapers, gear,
 and songs. Combine sound rating, years, recording type, and status filters.
@@ -38,6 +56,20 @@ the Mac's media controls. Open Tracklist and choose Bottom, Left, or Right.
 The list slides in from that edge and remembers its position. With Reduce
 Motion enabled in macOS, it opens and closes immediately. The offline
 catalog remains usable without a network.
+
+Open Visualizer in the player and choose Ember Bloom, Tidal Glass, Prism
+Veil, or Infinite Filigree. Infinite Filigree is a 48-second looping flight
+through a violet, emerald, and gold tunnel. It targets 60 frames per second.
+The patterns are generated on your Mac. Bass, midrange, and
+treble shape the animation when the recording provides audio samples.
+Pause freezes the image. Reduce Motion gives you a still composition.
+Full Screen expands the window while keeping the player and tracklist available.
+
+Open EQ to choose the Tool Drive Project's Bass Boost, Vocal, or Bright
+curve, or adjust the three tone sliders. Magik adds the site's eight
+filters to any curve and locks the Mid slider until switched off. Flat
+clears all effects. Your settings carry through tracks of the current
+recording. Opening another recording starts flat.
 
 Save to Library downloads every stream track to a hidden staging folder and
 adds the recording only after the complete set is verified. Open download uses
@@ -110,7 +142,7 @@ If saved shows cannot be written, the app displays a notice and keeps
 changes for the session. A damaged catalog cache falls back to the bundle.
 
 BUILD FROM SOURCE
-Install Xcode or its Command Line Tools and Python 3.
+Install Xcode 26 or later and Python 3 to build the layered app icon and app.
 From the repository root:
   bash "macOS App/build-app.sh"
   bash "macOS App/test-app.sh"

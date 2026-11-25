@@ -19,6 +19,8 @@ final class DownloadBrowser: NSObject, NSWindowDelegate, WKNavigationDelegate, W
     private weak var forwardButton: NSButton?
     private weak var reloadButton: NSButton?
     private weak var safariButton: NSButton?
+    private weak var navigationControls: NSStackView?
+    private var usesExclusiveGlass = false
     private var activeDownload: WKDownload?
     private var importDirectory: URL?
     private var downloadedFile: URL?
@@ -103,6 +105,8 @@ final class DownloadBrowser: NSObject, NSWindowDelegate, WKNavigationDelegate, W
         let browserWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1080, height: 760),
                                      styleMask: [.titled, .closable, .miniaturizable, .resizable],
                                      backing: .buffered, defer: false)
+        // This controller owns the window and releases it in windowWillClose.
+        browserWindow.isReleasedWhenClosed = false
         browserWindow.title = "Download \(source.date) · \(source.version)"
         browserWindow.minSize = NSSize(width: 720, height: 520)
         browserWindow.contentView = root
@@ -117,6 +121,8 @@ final class DownloadBrowser: NSObject, NSWindowDelegate, WKNavigationDelegate, W
         forwardButton = forward
         reloadButton = reload
         safariButton = safari
+        navigationControls = controls
+        setExclusiveGlass(usesExclusiveGlass)
         updateNavigationButtons()
         web.load(URLRequest(url: folderURL, cachePolicy: .reloadIgnoringLocalCacheData,
                             timeoutInterval: 60))
@@ -127,6 +133,15 @@ final class DownloadBrowser: NSObject, NSWindowDelegate, WKNavigationDelegate, W
     func close() {
         guard Thread.isMainThread else { DispatchQueue.main.async { self.close() }; return }
         window?.performClose(nil)
+    }
+
+    func setExclusiveGlass(_ active: Bool) {
+        usesExclusiveGlass = active
+        guard #available(macOS 26.0, *), let window, let navigationControls else { return }
+        window.setCatalogGlassTitlebar(active)
+        for case let button as NSButton in navigationControls.arrangedSubviews {
+            button.bezelStyle = active ? .glass : .texturedRounded
+        }
     }
 
     private func button(_ title: String, action: Selector, toolTip: String) -> NSButton {

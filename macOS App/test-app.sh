@@ -7,11 +7,19 @@ xcrun swiftc "$ROOT/macOS App/Updates.swift" "$ROOT/macOS App/tests/main.swift" 
 "$SCRATCH/checks" "$ROOT" "$SCRATCH" "$@"
 xcrun swiftc "$ROOT/macOS App/Updates.swift" "$ROOT/macOS App/LiveMedia.swift" \
   "$ROOT/macOS App/PlexService.swift" "$ROOT/macOS App/PlayerController.swift" \
+  "$ROOT/macOS App/AudioAnalysis.swift" "$ROOT/macOS App/PlaybackEqualizer.swift" \
   "$ROOT/macOS App/tests/test-live-media.swift" \
   -parse-as-library -module-cache-path "$ROOT/macOS App/dist/compiler-cache" \
   -framework AppKit -framework AVFoundation -framework MediaPlayer -framework Security \
   -o "$SCRATCH/live-media-checks"
 "$SCRATCH/live-media-checks"
+xcrun swiftc "$ROOT/macOS App/AudioAnalysis.swift" "$ROOT/macOS App/PlaybackEqualizer.swift" \
+  "$ROOT/macOS App/tests/test-audio-analysis.swift" \
+  -parse-as-library -module-cache-path "$ROOT/macOS App/dist/compiler-cache" -o "$SCRATCH/audio-analysis-checks"
+"$SCRATCH/audio-analysis-checks" "$SCRATCH"
+xcrun swiftc -O -parse-as-library "$ROOT/macOS App/PlaybackEqualizer.swift" "$ROOT/macOS App/tests/test-equalizer.swift" \
+  -module-cache-path "$ROOT/macOS App/dist/compiler-cache" -o "$SCRATCH/equalizer-checks"
+"$SCRATCH/equalizer-checks"
 if [[ -f "$ROOT/macOS App/tests/test-library.swift" ]]; then
   xcrun swiftc "$ROOT/macOS App/Updates.swift" "$ROOT/macOS App/LiveMedia.swift" \
     "$ROOT/macOS App/LibraryController.swift" \
@@ -28,6 +36,14 @@ if [[ -f "$ROOT/macOS App/tests/test-plex.swift" ]]; then
   "$SCRATCH/plex-checks"
 fi
 python3 "$ROOT/macOS App/tests/test-helper.py" "$ROOT" "$SCRATCH"
+xcrun swiftc -parse-as-library "$ROOT/macOS App/CatalogThemePreferences.swift" \
+  "$ROOT/macOS App/tests/test-theme-defaults.swift" -module-cache-path "$ROOT/macOS App/dist/compiler-cache" \
+  -o "$SCRATCH/theme-defaults-checks"
+"$SCRATCH/theme-defaults-checks"
+xcrun swiftc -parse-as-library "$ROOT/macOS App/GlassWallpaperPreferences.swift" \
+  "$ROOT/macOS App/tests/test-wallpaper-shuffle.swift" -module-cache-path "$ROOT/macOS App/dist/compiler-cache" \
+  -o "$SCRATCH/wallpaper-shuffle-checks"
+"$SCRATCH/wallpaper-shuffle-checks" "$ROOT/macOS App/Themes/glass-wallpapers.json"
 python3 "$ROOT/macOS App/tests/test-themes.py"
 python3 "$ROOT/verify_catalog.py"
 if [[ "${TOOL_DRIVE_GUI_TEST:-0}" == "1" && -x "$ROOT/macOS App/dist/Tool Drive Offline.app/Contents/MacOS/ToolDriveOffline" ]]; then

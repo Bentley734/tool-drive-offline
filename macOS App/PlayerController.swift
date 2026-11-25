@@ -11,6 +11,8 @@ final class PlayerController {
 
     var onStateChange: EventHandler?
     var onTrackListChange: EventHandler?
+    var onVisualizerLevels: (([Double]) -> Void)?
+    var onEqualizerAvailability: ((Bool?) -> Void)?
 
     private let media: LiveMediaService
     private let player = AVPlayer()
@@ -34,6 +36,12 @@ final class PlayerController {
     private var notificationObservers = [NSObjectProtocol]()
     private var remoteTargets = [(MPRemoteCommand, Any)]()
     private var lastNowPlayingSecond = -1
+    private var visualizerTimer: Timer?
+    private var audioAnalysis: AudioAnalysis?
+    private var lastLevels: [Double] = []
+    private var equalizerSettings = PlaybackEQSettings.flat
+    private var equalizerAvailability: Bool?
+    private var analysisPlayingSince: TimeInterval?
 
     init(media: LiveMediaService = LiveMediaService()) {
         self.media = media
@@ -48,6 +56,7 @@ final class PlayerController {
     }
 
     deinit {
+        visualizerTimer?.invalidate()
         media.cancelAll()
         retryWork?.cancel()
         itemStatusObservation?.invalidate()
@@ -58,6 +67,89 @@ final class PlayerController {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
     }
 
+    func setVisualizerActive(_ enabled: Bool) {
+        onMain { [weak self] in
+            guard let self = self, enabled != (self.visualizerTimer != nil) else { return }
+            if enabled {
+                let timer = Timer(timeInterval: 1.0 / 16, repeats: true) { [weak self] _ in self?.publishVisualizerLevels() }
+                self.visualizerTimer = timer
+                RunLoop.main.add(timer, forMode: .common)
+                self.lastLevels = []
+            } else {
+                self.visualizerTimer?.invalidate()
+                self.visualizerTimer = nil
+            }
+            self.configureAudioProcessing()
+            self.publishVisualizerLevels()
+        }
+    }
+
+    func setEqualizer(_ settings: PlaybackEQSettings) {
+        onMain { [weak self] in
+            guard let self = self, settings != self.equalizerSettings else { return }
+            self.equalizerSettings = settings
+            self.configureAudioProcessing()
+        }
+    }
+
+    private func configureAudioProcessing() {
+        let wantsLevels = visualizerTimer != nil
+        guard wantsLevels || !equalizerSettings.isFlat else { detachAudioProcessing(); return }
+        if let analysis = audioAnalysis {
+            analysis.configure(settings: equalizerSettings, levels: wantsLevels)
+            return
+        }
+        guard let item = player.currentItem else { return }
+        let analysis = AudioAnalysis()
+        audioAnalysis = analysis
+        analysis.configure(settings: equalizerSettings, levels: wantsLevels)
+        let asset = item.asset
+        asset.loadValuesAsynchronously(forKeys: ["tracks"]) { [weak self, weak item, weak analysis] in
+            DispatchQueue.main.async {
+                guard let self = self, let analysis = analysis, let item = item,
+                      self.player.currentItem === item, self.audioAnalysis === analysis else { return }
+                guard asset.statusOfValue(forKey: "tracks", error: nil) == .loaded else {
+                    self.emitEqualizerAvailability(false)
+                    return
+                }
+                let selected = item.tracks.first { $0.isEnabled && $0.assetTrack?.mediaType == .audio }?.assetTrack
+                guard let track = selected ?? asset.tracks(withMediaType: .audio).first,
+                      let mix = analysis.mix(for: track) else {
+                    self.emitEqualizerAvailability(false)
+                    return
+                }
+                item.audioMix = mix
+            }
+        }
+    }
+
+    private func detachAudioProcessing() {
+        guard audioAnalysis != nil else { return }
+        audioAnalysis = nil
+        player.currentItem?.audioMix = nil
+        analysisPlayingSince = nil
+        emitEqualizerAvailability(nil)
+        publishVisualizerLevels()
+    }
+
+    private func emitEqualizerAvailability(_ value: Bool?) {
+        guard value != equalizerAvailability else { return }
+        equalizerAvailability = value
+        onEqualizerAvailability?(value)
+    }
+
+    private func publishVisualizerLevels() {
+        let levels: [Double]
+        if visualizerTimer != nil, player.timeControlStatus == .playing, userWantsPlayback, let analysis = audioAnalysis {
+            levels = analysis.levels(at: player.currentTime().seconds)
+        } else {
+            levels = [0, 0, 0]
+        }
+        guard levels != lastLevels else { return }
+        lastLevels = levels
+        onVisualizerLevels?(levels)
+    }
+
     func loadLiveSource(showID: Int, sourceID: Int, date: String, version: Int,
                         venue: String, versionLabel: String, startTrack: Int = 0,
                         autoplay: Bool = true) {
@@ -65,6 +157,7 @@ final class PlayerController {
             guard let self = self else { return }
             self.cancelRetry()
             self.player.pause()
+            self.clearItemObservers()
             self.player.replaceCurrentItem(with: nil)
             self.tracks = []
             self.index = 0
@@ -322,6 +415,7 @@ final class PlayerController {
             forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main
         ) { [weak self] note in self?.handlePlaybackFailure(note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error) })
         player.replaceCurrentItem(with: item)
+        configureAudioProcessing()
         status = autoplay ? "buffering" : "ready"
         userWantsPlayback = autoplay
         lastNowPlayingSecond = -1
@@ -366,6 +460,16 @@ final class PlayerController {
     }
 
     private func periodicUpdate() {
+        if let analysis = audioAnalysis {
+            if let available = analysis.equalizerAvailable {
+                emitEqualizerAvailability(available)
+            } else if player.timeControlStatus == .playing {
+                let now = ProcessInfo.processInfo.systemUptime
+                if let since = analysisPlayingSince {
+                    if now - since >= 2 { emitEqualizerAvailability(false) }
+                } else { analysisPlayingSince = now }
+            } else { analysisPlayingSince = nil }
+        }
         if let healthy = healthySince, Date().timeIntervalSince(healthy) >= 5 {
             retryCount = 0
             healthySince = nil
@@ -405,6 +509,7 @@ final class PlayerController {
     }
 
     private func clearItemObservers() {
+        detachAudioProcessing()
         itemStatusObservation?.invalidate()
         itemStatusObservation = nil
         notificationObservers.forEach(NotificationCenter.default.removeObserver)

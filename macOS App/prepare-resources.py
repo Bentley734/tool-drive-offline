@@ -1,11 +1,22 @@
-"""Adapt only the bundled Mac page; preserve the browser distribution."""
+"""Assemble the bundled desktop catalog without changing the standalone browser edition."""
+import argparse
 from pathlib import Path
 from xml.etree import ElementTree
 import base64
+from html import escape
+import json
+import shutil
 import sys
-root, output = map(Path, sys.argv[1:])
-html = (root / 'index.html').read_text()
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('root', type=Path)
+parser.add_argument('output', type=Path)
+parser.add_argument('--windows', action='store_true')
+args = parser.parse_args()
+root, output = args.root.resolve(), args.output.resolve()
+output.mkdir(parents=True, exist_ok=True)
+html = (root / 'index.html').read_text(encoding='utf-8')
 replacements = {
+    "img-src data:;": "img-src file: data:;",
     "localStorage.getItem('tool-offline-saved-v1')": "window.toolMac.load()",
     "localStorage.setItem('tool-offline-saved-v1',JSON.stringify([...saved]))": "window.toolMac.save(JSON.stringify([...saved]))",
     "async function copyText(text){": "async function copyText(text){if(window.toolMac){window.toolMac.copy(text);toast('Copied. Paste into Plexamp search.');return;}",
@@ -67,6 +78,11 @@ html = html.replace(wordmark, '<span class="wordmark">' + mark + '</span>')
 
 themes = ['front-row', 'night-shift', 'graphite', 'laser-grid']
 pictures = ['blue-silhouette', 'governors-ball']
+manifest = mac / 'Themes/glass-wallpapers.json'
+wallpapers = json.loads(manifest.read_text(encoding='utf-8'))
+wallpaper_options = ''.join(
+    f'<option value="{item["id"]}">{escape(item["title"])}</option>' for item in wallpapers
+)
 artwork = {
     'blue-silhouette': 'blue-silhouette.jpg',
     'governors-ball': 'governors-ball.jpg',
@@ -86,19 +102,24 @@ picker = (
     '<div class="theme-picker">'
     '<label for="theme-choice">Theme</label>'
     f'<select id="theme-choice">{options(themes)}</select></div>'
+    '<template id="glass-theme-option"><option value="liquid-glass">Liquid Glass</option></template>'
     '<div class="theme-picker"><label for="logo-choice">Logo</label>'
     '<select id="logo-choice"><option value="classic">Classic</option><option value="2006">2006</option></select></div>'
     '<div class="theme-picker" id="picture-picker" hidden>'
     '<label for="picture-choice">Picture</label>'
     f'<select id="picture-choice">{options(pictures)}</select></div>'
-    '<span class="offline">Available offline</span></div>'
+    '<div class="theme-picker" id="glass-wallpaper-control" hidden><label for="glass-wallpaper-picker">Wallpaper</label>'
+    f'<select id="glass-wallpaper-picker" aria-label="Liquid Glass wallpaper">{wallpaper_options}'
+    '<option value="shuffle">Shuffle</option></select></div>'
+    '<div class="topbar-status"><span class="offline">Available offline</span>'
+    '<label class="glass-choice" id="liquid-glass-control" hidden>'
+    '<input id="liquid-glass-choice" type="checkbox" switch role="switch">Liquid Glass</label></div></div>'
 )
 badge = '<span class="offline">Available offline</span>'
 assert html.count(badge) == 1, 'Expected the Mac toolbar'
 html = html.replace(badge, picker)
 
-# Templates keep illustrations inert until selected and allow the existing
-# data-only image policy to stay in effect, including on a disconnected Mac.
+# Front Row and Laser Grid retain their embedded photo templates.
 gallery = []
 image_types = {'.jpg': 'image/jpeg', '.svg': 'image/svg+xml'}
 for name, filename in artwork.items():
@@ -110,8 +131,19 @@ for name, filename in artwork.items():
     )
 html = html.replace('</header>', '</header>' + ''.join(gallery), 1)
 stylesheets = ['mac.css', 'Themes/themes.css', 'Themes/front-row.css',
-               'Themes/night-shift.css', 'Themes/laser-grid.css']
-styles = '\n'.join((mac / filename).read_text() for filename in stylesheets)
+               'Themes/night-shift.css', 'Themes/laser-grid.css', 'Themes/liquid-glass.css',
+               'Themes/glass-theme.css']
+styles = '\n'.join((mac / filename).read_text(encoding='utf-8') for filename in stylesheets)
+# Each wallpaper loads from the app bundle only when its selector matches.
+wallpaper_dir = output / 'Wallpapers'
+wallpaper_dir.mkdir(exist_ok=True)
+shutil.copyfile(manifest, output / manifest.name)
+glass_selector = ':root[data-theme="liquid-glass"][data-liquid-glass="true"]'
+for item in wallpapers:
+    filename = item['file']
+    shutil.copyfile(mac / 'Themes/Wallpapers' / filename, wallpaper_dir / filename)
+    styles += (f'\n{glass_selector}[data-glass-wallpaper="{item["id"]}"] {{'
+               f'--glass-wallpaper-image: url("Wallpapers/{filename}"); }}')
 html = html.replace('</style>', '</style><style>' + styles + '</style>', 1)
 html = html.replace('<h1>Find your next live listen.</h1>',
                     '<h1>Find your next live listen.</h1><div class="theme-meta">'
@@ -139,7 +171,10 @@ player = (
     '<div class="mac-player-timeline"><span class="mono" id="mac-player-elapsed">0:00</span>'
     '<input id="mac-player-seek" type="range" min="0" max="0" step="1" value="0" aria-label="Playback position">'
     '<span class="mono" id="mac-player-duration">0:00</span></div>'
-    '<div class="mac-player-tools"><button id="mac-player-tracklist" aria-expanded="false" '
+    '<div class="mac-player-tools"><button id="mac-player-eq" aria-label="Equalizer" '
+    'aria-controls="mac-eq-panel" aria-expanded="false">EQ</button>'
+    '<button id="mac-player-visualizer" aria-expanded="false" '
+    'aria-controls="mac-visualizer">Visualizer</button><button id="mac-player-tracklist" aria-expanded="false" '
     'aria-controls="mac-tracklist-panel">Tracklist</button>'
     '<button id="mac-player-close" aria-label="Close player">×</button></div></div>'
     '<section class="mac-tracklist-panel" id="mac-tracklist-panel" aria-labelledby="mac-tracklist-title" hidden>'
@@ -149,6 +184,35 @@ player = (
     '<option value="left">Left</option><option value="bottom" selected>Bottom</option>'
     '<option value="right">Right</option></select></div>'
     '<div class="mac-player-tracks" id="mac-player-tracks"></div></section></section>'
+)
+eq_bands = ''.join(
+    f'<div class="mac-eq-band"><label for="mac-eq-{key}">{name}</label>'
+    f'<input id="mac-eq-{key}" type="range" min="-10" max="10" step="1" value="0">'
+    f'<output for="mac-eq-{key}">0 dB</output></div>'
+    for key, name in [('bass', 'Bass'), ('mid', 'Mid'), ('treble', 'Treble')]
+)
+equalizer = (
+    '<section id="mac-eq-panel" aria-labelledby="mac-eq-title" hidden>'
+    '<header><h2 id="mac-eq-title">Equalizer</h2><button id="mac-eq-close" aria-label="Close equalizer">×</button></header>'
+    '<div class="mac-eq-presets" role="group" aria-label="Tone preset">'
+    '<button data-eq-preset="flat">Flat</button><button data-eq-preset="bassBoost">Bass Boost</button>'
+    '<button data-eq-preset="vocal">Vocal</button><button data-eq-preset="bright">Bright</button></div>'
+    + eq_bands +
+    '<div class="mac-eq-layer"><button id="mac-eq-magik" aria-pressed="false">Magik</button>'
+    '<span>Layer with any preset</span></div><p id="mac-eq-status" role="status" hidden></p></section>'
+)
+visualizer = (
+    '<section id="mac-visualizer" aria-label="Music visualizer" hidden>'
+    '<canvas id="mac-visualizer-canvas" role="img" aria-label="Ember Bloom fractal"></canvas>'
+    '<canvas id="mac-visualizer-gl-canvas" role="img" aria-label="Infinite Filigree tunnel" hidden></canvas>'
+    '<div class="visualizer-toolbar">'
+    '<label for="mac-visualizer-preset">Visualizer</label>'
+    '<select id="mac-visualizer-preset" aria-label="Visualizer preset">'
+    '<option value="ember">Ember Bloom</option><option value="tidal">Tidal Glass</option>'
+    '<option value="prism">Prism Veil</option><option value="tunnel">Infinite Filigree</option></select>'
+    '<button id="mac-visualizer-fullscreen" aria-pressed="false">Full Screen</button>'
+    '<button id="mac-visualizer-close" aria-label="Close visualizer" title="Close visualizer">×</button>'
+    '</div></section>'
 )
 library = (
     '<dialog id="library-dialog" aria-labelledby="library-title">'
@@ -186,7 +250,7 @@ dialog = ('<dialog id="updates-dialog" aria-labelledby="updates-title">'
           '<div class="dialog-top"><h2 id="updates-title">Updates</h2>'
           '<button class="dialog-close" id="close-updates" aria-label="Close updates">×</button>'
           '</div></dialog>')
-html = html.replace('<dialog id="show-dialog"', player + library + plex + dialog + '<dialog id="show-dialog"', 1)
+html = html.replace('<dialog id="show-dialog"', player + visualizer + equalizer + library + plex + dialog + '<dialog id="show-dialog"', 1)
 # Supply the same filtered rows and freshly imported totals to the active skin.
 for name, original, arguments, hook in [
     ('render', 'renderRows', 'resetPage', 'window.refreshMacTheme?.()'),
@@ -196,11 +260,17 @@ for name, original, arguments, hook in [
     assert html.count(anchor) == 1, 'Expected catalog renderer: ' + name
     wrapper = f'function {name}({arguments}){{{original}({arguments}); {hook};}}\n'
     html = html.replace(anchor, wrapper + f'function {original}(', 1)
-scripts = [mac / 'Themes/night-shift.js', mac / 'mac.js']
-html = html.replace('</body>', ''.join('<script>' + path.read_text() + '</script>' for path in scripts) + '</body>', 1)
+scripts = [mac / 'Themes/night-shift.js', mac / 'visualizer-art.js', mac / 'visualizer-tunnel.js',
+           mac / 'visualizer-tunnel-fallback.js', mac / 'visualizer.js', mac / 'equalizer.js', mac / 'mac.js']
+html = html.replace('</body>', ''.join('<script>' + path.read_text(encoding='utf-8') + '</script>' for path in scripts) + '</body>', 1)
 html = html.replace('Ratings and catalog details are frozen at this snapshot.', 'Updates refresh this offline snapshot. Your library stays private.')
-(output / 'index.html').write_text(html)
+if args.windows:
+    sys.path.insert(0, str(root / 'Windows App'))
+    from prepare_windows import render_windows
+    html = render_windows(html, root / 'Windows App', output)
+(output / 'index.html').write_text(html, encoding='utf-8')
 (output / 'catalog.json').write_bytes((root / 'catalog.json').read_bytes())
-(output / 'install-update.sh').write_bytes((root / 'macOS App/install-update.sh').read_bytes())
-for name in ['NOTICE.md', 'README.md']:
+if not args.windows:
+    (output / 'install-update.sh').write_bytes((root / 'macOS App/install-update.sh').read_bytes())
+for name in (['NOTICE.md'] if args.windows else ['NOTICE.md', 'README.md']):
     (output / name).write_bytes((root / name).read_bytes())

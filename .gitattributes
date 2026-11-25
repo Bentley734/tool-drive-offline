@@ -8,3 +8,5 @@
 *.ps1 text eol=crlf
 *.ico binary
 *.jpg binary
+*.exe binary
+*.xz binary
